@@ -1,0 +1,115 @@
+// $Id: TArtAnlEvent.cxx 755 2011-05-20 08:04:11Z linev $
+//-----------------------------------------------------------------------
+//       The GSI Online Offline Object Oriented (Go4) Project
+//         Experiment Data Processing at EE department, GSI
+//-----------------------------------------------------------------------
+// Copyright (C) 2000- GSI Helmholtzzentrum für Schwerionenforschung GmbH
+//                     Planckstr. 1, 64291 Darmstadt, Germany
+// Contact:            http://go4.gsi.de
+//-----------------------------------------------------------------------
+// This software can be used under the license agreements as stated
+// in Go4License.txt file which is part of the distribution.
+//-----------------------------------------------------------------------
+
+#include "TArtSortEvent.h"
+
+void TArtSortEvent::Clear(Option_t *t)
+{
+
+  for(int i=0;i<310;i++){
+    
+    F1FIBER_time[i]  = 0;
+    F1FIBER_Y_POS[i] = -50000;
+    
+  }
+  
+  F1_Tref = 0;
+  
+  F2UPPAC_L = 0;
+  F2UPPAC_D = 0;
+  F2UPPAC_R = 0;
+  F2UPPAC_U = 0;
+  F2UPPAC_A = 0;
+  
+  F2DPPAC_L = 0;
+  F2DPPAC_D = 0;
+  F2DPPAC_R = 0;
+  F2DPPAC_U = 0;
+  F2DPPAC_A = 0;
+  
+  F3UPPAC_L = 0;
+  F3UPPAC_D = 0;
+  F3UPPAC_R = 0;
+  F3UPPAC_U = 0;
+  F3UPPAC_A = 0;
+  // 28052014 TETSUTA ADD
+  F3DPPAC_L =	0;
+  F3DPPAC_D =	0;
+  F3DPPAC_R =	0;
+  F3DPPAC_U =	0;
+  F3DPPAC_A =	0;
+  // ------------------------------
+  
+  F2_Silicon = 0;
+  F3_Silicon = 0;	// 28052014 TETSUTA ADD
+  
+  F2_Scint_Q = 0;
+  F2_Scint_T = 0;
+
+  F2_RF   = 0;
+  F2_Tref = 0;
+  
+  PPAC_Trg = 0;
+  
+  // 30052014 TETSUTA ADD
+  F2PLASTIC	= 0;
+  F3PLASTIC_L	= 0;
+  F3PLASTIC_R	= 0;
+  RFrequ        = 0;
+  F2PLASTIC_T	= 0;
+  F3PLASTIC_L_T	= 0;
+  F3PLASTIC_R_T	= 0;
+  F2SSD         = 0;
+  F3SSD         = 0;
+  // ------------------------------	    
+
+  TPC_Silicon_RU  = 0;
+  TPC_Silicon_RD  = 0;
+  TPC_Silicon_CRU = 0;
+  TPC_Silicon_CRD = 0;
+  TPC_Silicon_LU  = 0;
+  TPC_Silicon_LD  = 0;
+  TPC_Silicon_CLU = 0;
+  TPC_Silicon_CLD = 0;
+  
+  for(int i=0;i<24;i++){
+    
+    TPC_CesiumI_Center[i] = 0;
+    
+  }
+
+  for(int i=0;i<8;i++){
+    
+    TPCSi[i] =	0;
+    
+  }
+  
+  LISCI1_fast = 0;
+  LISCI1_slow = 0;
+  LISCI2_fast = 0;
+  LISCI2_slow = 0;
+  
+  Master_Trg = 0;
+  GR_pos    = 0;
+  GR_L	    = 0;
+  GR_R	    = 0;
+  RFreq	    = 0;
+  
+  // TETSUYA 20140522 CAGRAF 
+  PLASTIC1    = 0;
+  PLASTIC2    = 0;
+  GR_TRIG     = 0;
+  TOF_RF_Liq1 = 0;
+  TOF_RF_Liq2 = 0;
+  GE	     = 0;
+}

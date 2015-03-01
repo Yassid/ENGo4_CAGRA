@@ -1,0 +1,164 @@
+// $Id: TArtSortEvent.h 755 2011-05-20 08:04:11Z linev $
+//-----------------------------------------------------------------------
+//       The GSI Online Offline Object Oriented (Go4) Project
+//         Experiment Data Processing at EE department, GSI
+//-----------------------------------------------------------------------
+// Copyright (C) 2000- GSI Helmholtzzentrum für Schwerionenforschung GmbH
+//                     Planckstr. 1, 64291 Darmstadt, Germany
+// Contact:            http://go4.gsi.de
+//-----------------------------------------------------------------------
+// This software can be used under the license agreements as stated
+// in Go4License.txt file which is part of the distribution.
+//-----------------------------------------------------------------------
+
+#ifndef TArtSORTEVENT_H
+#define TArtSORTEVENT_H
+
+#include "TGo4EventElement.h"
+#include "TArtUnpackEvent.h"
+
+class TArtSortEvent : public TGo4EventElement {
+   public:
+ TArtSortEvent() : TGo4EventElement() {}
+ TArtSortEvent(const char* name) : TGo4EventElement(name) {}
+  virtual ~TArtSortEvent() {}
+  
+  virtual void  Clear(Option_t *t="");
+  
+      /// Detector cables sorting Yassid 28082013 E390
+  
+      /// Adding F3 Upstream PPAC and CsI+Si detectors of the active target Yassid 06112013 16:32
+      
+  
+      // Yassid 10122013 F1 Fiber Scintillator
+      
+      // *************** F1 FIBER *****************//
+      
+      Int_t F1FIBER_time[310];
+      Int_t F1FIBER_Y_POS[310];
+      
+       Int_t F1_Tref;
+
+      //**************** F2 PPACS ****************//
+
+      Int_t F2UPPAC_L;
+      Int_t F2UPPAC_D;
+      Int_t F2UPPAC_R;
+      Int_t F2UPPAC_U;
+      Int_t F2UPPAC_A;
+      
+      Int_t F2DPPAC_L;
+      Int_t F2DPPAC_D;
+      Int_t F2DPPAC_R;
+      Int_t F2DPPAC_U;
+      Int_t F2DPPAC_A;
+
+      //*************** F3 PPACS ******************//
+
+      Int_t F3UPPAC_L;
+      Int_t F3UPPAC_D;
+      Int_t F3UPPAC_R;
+      Int_t F3UPPAC_U;
+      Int_t F3UPPAC_A;
+      // TETSUYA 28052014 ADD
+      Int_t F3DPPAC_L;
+      Int_t F3DPPAC_D;
+      Int_t F3DPPAC_R;
+      Int_t F3DPPAC_U;
+      Int_t F3DPPAC_A;
+      // ------------------------------
+      //*************** F2&F3 PLASTICS ******************//
+      // TETSUYA ADD 30052014
+      Int_t F2PLASTIC;
+      Int_t F3PLASTIC_L;
+      Int_t F3PLASTIC_R;
+      Int_t RFreq;
+      Int_t F2PLASTIC_T;
+      Int_t F3PLASTIC_L_T;
+      Int_t F3PLASTIC_R_T;
+      Int_t F2SSD;
+      Int_t F3SSD;
+      // -----------------------------------------      
+      Int_t F2_Silicon;
+      Int_t F3_Silicon; // 28052014 TETSUYA ADD
+
+      Int_t F2_Scint_Q;
+      Int_t F2_Scint_T;
+
+      Int_t F2_RF;
+      Int_t F2_Tref;
+
+      Int_t PPAC_Trg;
+
+      Int_t TPC_Silicon_RU;
+      Int_t TPC_Silicon_RD;
+      Int_t TPC_Silicon_CRU;
+      Int_t TPC_Silicon_CRD;
+      Int_t TPC_Silicon_LU;
+      Int_t TPC_Silicon_LD;
+      Int_t TPC_Silicon_CLU;
+      Int_t TPC_Silicon_CLD;
+
+      Int_t TPC_CesiumI_Center[24];
+
+      Int_t TPCSi[8];
+
+      
+      Int_t LISCI1_fast;
+      Int_t LISCI1_slow;
+      Int_t LISCI2_fast;
+      Int_t LISCI2_slow;
+      Int_t Master_Trg;
+      Int_t GR_pos;
+      Int_t GR_L;
+      Int_t GR_R;
+      Int_t RFreq;
+      
+      // ADD TETSUYA 20140522
+      Int_t PLASTIC1;
+      Int_t PLASTIC2;
+      Int_t GR_TRIG; 
+      Int_t TOF_RF_Liq1;
+      Int_t TOF_RF_Liq2;
+      Int_t GE;
+
+      //      Int_t NEUTRON1;
+      //      Int_t NEUTRON2;
+      
+     // Int_t HODO_RF;
+     // Int_t HODO_RF_Del;
+
+
+     /* Int_t DSSD_1_b[32];
+      Int_t DSSD_1_g[32];
+      Int_t DSSD_2_b[32];
+      Int_t DSSD_2_g[32];
+      Int_t DSSD_3_b[32];
+      Int_t DSSD_3_g[32];
+      Int_t DSSD_4_b[32];
+      Int_t DSSD_4_g[32];
+      Int_t DSSD_5_b[32];
+      Int_t DSSD_5_g[32];
+      Int_t DSSD_6_b[32];
+      Int_t DSSD_6_g[32];
+
+      Int_t CsI_1[4];
+      Int_t CsI_2[4];
+      Int_t CsI_3[4];
+      Int_t CsI_4[4];
+      Int_t CsI_5[4];
+      Int_t CsI_6[4];*/
+
+      //Int_t SSD[6];
+        
+        
+       
+
+      
+
+   ClassDef(TArtSortEvent,1)
+};
+#endif //TArtSORTEVENT_H
+
+
+

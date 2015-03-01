@@ -1,0 +1,459 @@
+// $Id: TArtAnlProc.cxx 933 2013-01-29 15:27:58Z linev $
+//-----------------------------------------------------------------------
+//       The GSI Online Offline Object Oriented (Go4) Project
+//         Experiment Data Processing at EE department, GSI
+//-----------------------------------------------------------------------
+// Copyright (C) 2000- GSI Helmholtzzentrum für Schwerionenforschung GmbH
+//                     Planckstr. 1, 64291 Darmstadt, Germany
+// Contact:            http://go4.gsi.de
+//-----------------------------------------------------------------------
+// This software can be used under the license agreements as stated
+// in Go4License.txt file which is part of the distribution.
+//-----------------------------------------------------------------------
+
+#include "TArtAnlProc.h"
+
+#include <math.h>
+
+#include "TH1.h"
+#include "TH2.h"
+#include "TROOT.h"
+
+#include "TGo4WinCond.h"
+#include "TGo4Analysis.h"
+
+#include "TArtAnlEvent.h"
+#include "TArtSortEvent.h"
+#include "TArtF2Param.h"
+#include "TArtF3Param.h"
+
+//-----------------------------------------------------------
+TArtAnlProc::TArtAnlProc() :
+   TGo4EventProcessor(),
+   fF2Param(0), fWinCon(0),PID_Raw_GATE_Scint(0),fF3Param(0) // TETSUYA ADD 28052014
+{
+}
+
+//-----------------------------------------------------------
+TArtAnlProc::TArtAnlProc(const char* name) :
+   TGo4EventProcessor(name),
+   fF2Param(0), fWinCon(0),PID_Raw_GATE_Scint(0),fF3Param(0) // TETSUYA ADD 28052014
+{
+   TGo4Log::Info("TArtAnlProc: Create");
+   
+   // Yassid 11092013 Add parameters
+   //   for calibration of detectors only in this step
+
+   //// init user analysis objects:
+   // create and load parameter here
+   // set_Par.C macro executed after parameter load from auto-save file
+
+   fF2Param = (TArtF2Param*)
+     MakeParameter("F2Param","TArtF2Param","set_F2Par.C");
+
+   // 28052014 TETSUYA ADD
+   fF3Param = (TArtF3Param*) 
+     MakeParameter("F3Param","TArtF3Param","set_F3Par.C");
+   //------------------------------------
+ 
+   // this one is created in TArtAnalysis, because it is used in both steps
+   fWinCon = (TGo4WinCond *) GetAnalysisCondition("wincon1", "TGo4WinCond");
+   if (fWinCon) fWinCon->PrintCondition(true);
+
+    F2_UPPAC_Cal_Time_X =  MakeTH1('I', "Calibration/F2/F2UPPAC_Pos_X_time_cal", "F2UPPAC Postion X Calibrated in ns", 1000, -100., 100.);
+    F2_UPPAC_Cal_Time_Y =  MakeTH1('I', "Calibration/F2/F2UPPAC_Pos_Y_time_cal", "F2UPPAC Postion Y Calibrated in ns", 1000, -100., 100.);
+
+    F2_UPPAC_Pos_Time =  MakeTH2('I', "Calibration/F2/F2UPPAC_Pos_time_cal", "F2UPPAC Postion Calibrated in ns",  1000, -100., 100., 1000, -100., 100.);
+    F2_UPPAC_Pos_Time->GetXaxis()->SetTitle("X Position (ns)");
+    F2_UPPAC_Pos_Time->GetYaxis()->SetTitle("Y Position (ns)");  
+
+    F2_DPPAC_Cal_Time_X =  MakeTH1('I', "Calibration/F2/F2DPPAC_Pos_X_time_cal", "F2DPPAC Postion X Calibrated in ns", 1000, -100.,100.);
+    F2_DPPAC_Cal_Time_Y =  MakeTH1('I', "Calibration/F2/F2DPPAC_Pos_Y_time_cal", "F2DPPAC Postion Y Calibrated in ns", 1000, 100., 100.);
+
+    F2_DPPAC_Pos_Time =  MakeTH2('I', "Calibration/F2/F2DPPAC_Pos_time_cal", "F2DPPAC Postion Calibrated in ns", 1000, -100., 100., 1000, -100., 100.);  
+    F2_DPPAC_Pos_Time->GetXaxis()->SetTitle("X Position (ns)");
+    F2_DPPAC_Pos_Time->GetYaxis()->SetTitle("Y Position (ns)");
+    
+    F2_UPPAC_Pos_mm = MakeTH2('I', "Calibration/F2/F2UPPAC_Pos_mm_cal", "F2UPPAC Postion Calibrated in mm",  1000, -100., 100., 1000, -100., 100.);
+    F2_DPPAC_Pos_mm = MakeTH2('I', "Calibration/F2/F2DPPAC_Pos_mm_cal", "F2DPPAC Postion Calibrated in mm",  1000, -100., 100., 1000, -100., 100.);
+    
+    // 28052014 TETSUYA ADD   
+    F3_UPPAC_Cal_Time_X =  MakeTH1('I', "Calibration/F3/F3UPPAC_Pos_X_time_cal", "F3UPPAC Postion X Calibrated in ns", 1000, -100., 100.);
+    F3_UPPAC_Cal_Time_Y =  MakeTH1('I', "Calibration/F3/F3UPPAC_Pos_Y_time_cal", "F3UPPAC Postion Y Calibrated in ns", 1000, -100., 100.);
+
+    F3_UPPAC_Pos_Time =  MakeTH2('I', "Calibration/F3/F3UPPAC_Pos_time_cal", "F3UPPAC Postion Calibrated in ns",  1000, -100., 100., 1000, -100., 100.);
+    F3_UPPAC_Pos_Time->GetXaxis()->SetTitle("X Position (ns)");
+    F3_UPPAC_Pos_Time->GetYaxis()->SetTitle("Y Position (ns)");  
+
+    F3_DPPAC_Cal_Time_X =  MakeTH1('I', "Calibration/F3/F3DPPAC_Pos_X_time_cal", "F3DPPAC Postion X Calibrated in ns", 1000, -100.,100.);
+    F3_DPPAC_Cal_Time_Y =  MakeTH1('I', "Calibration/F3/F3DPPAC_Pos_Y_time_cal", "F3DPPAC Postion Y Calibrated in ns", 1000, 100., 100.);
+    
+    F3_DPPAC_Pos_Time =  MakeTH2('I', "Calibration/F3/F3DPPAC_Pos_time_cal", "F3DPPAC Postion Calibrated in ns", 
+				 1000, -100., 100., 1000, -100., 100.);  
+    F3_DPPAC_Pos_Time->GetXaxis()->SetTitle("X Position (ns)");
+    F3_DPPAC_Pos_Time->GetYaxis()->SetTitle("Y Position (ns)");
+    
+    F3_UPPAC_Pos_mm = MakeTH2('I', "Calibration/F3/F3UPPAC_Pos_mm_cal", "F3UPPAC Postion Calibrated in mm",
+			      1000, -100., 100., 1000, -100., 100.);
+    F3_DPPAC_Pos_mm = MakeTH2('I', "Calibration/F3/F3DPPAC_Pos_mm_cal", "F3DPPAC Postion Calibrated in mm",
+			      1000, -100., 100., 1000, -100., 100.);
+    //------------------------------------
+   
+    // Yassid 061013 These guys are not working currently (Segmentation violation) TODO Fix later
+    
+    //Beam_trckZX = MakeTH2('I', "Calibration/Beam_trackingZX", "Beam tracking ZX",  100, 0., 5000., 100, 0., 5000.);
+    //Beam_trckZY = MakeTH2('I', "Calibration/Beam_trackingZY", "Beam tracking ZY",  100, 0., 5000., 100, 0., 5000.);
+   
+    PID_RF_Scint_cond = MakeTH2('I', "Calibration/PID/F2_PID_HODOCond", "PID RF v1190 - Scint HODO Cond",100, 1., 4096., 100, 1., 4096.);
+   
+    RF_Cond = MakeTH1('I', "Calibration/F2/F2_RaF_Cond", "F2_Radiofrequency_Cond", 500, 1., 50000.);
+    
+    //char fullnameBeamZ[100];
+    //char histonameBeamZ[100];
+    
+    
+    for(int i=0;i<9;i++){
+    
+    Beam_profile_z[i] = MakeH2I_Profile("Calibration/Beam_Profiles",i);
+   // Beam_profile_z_cond[i] = MakeH2I_Profile_cond("Calibration/Beam_Profiles_Cond_All",i,10);
+    //Beam_profile_z_cond5[i] = MakeH2I_Profile_cond("Calibration/Beam_Profiles_Cond_05",i,5);
+    //Beam_profile_z_cond6[i] = MakeH2I_Profile_cond("Calibration/Beam_Profiles_Cond_06",i,6);
+    //Beam_profile_z_cond7[i] = MakeH2I_Profile_cond("Calibration/Beam_Profiles_Cond_07",i,7);
+    
+    }
+    
+    
+
+
+}
+//-----------------------------------------------------------
+TArtAnlProc::~TArtAnlProc()
+{
+  TGo4Log::Info("TArtAnlProc: Delete");
+   if (fWinCon) fWinCon->PrintCondition(true);
+ 
+}
+//-----------------------------------------------------------
+Bool_t TArtAnlProc::BuildEvent(TGo4EventElement* dest)
+{
+   Bool_t isValid=kFALSE; // validity of output event
+
+   TArtSortEvent* inp_evt  = (TArtSortEvent*) GetInputEvent();
+   TArtAnlEvent* out_evt = (TArtAnlEvent*) dest;
+
+   // see comments in UnpackProc
+   if((inp_evt==0) || !inp_evt->IsValid()){ // input invalid
+      out_evt->SetValid(isValid); // invalid
+      return isValid; // must be same is for SetValid
+   }
+   isValid=kTRUE;
+
+   Int_t cnt(0);
+   
+
+////////////////// PPACs /////////////////////
+   // Position calibration of PPACS Yassid 10092013
+   
+   F2_UPPAC_Cal_Time_X ->Fill((fF2Param->fF2UPPAC_tdc_param[0]*inp_evt-> F2UPPAC_L) - (fF2Param->fF2UPPAC_tdc_param[1]*inp_evt-> F2UPPAC_R )    );     
+   F2_UPPAC_Cal_Time_Y ->Fill(  (fF2Param->fF2UPPAC_tdc_param[3]*inp_evt-> F2UPPAC_D) - (fF2Param->fF2UPPAC_tdc_param[2]*inp_evt-> F2UPPAC_U )    );
+
+   F2_UPPAC_Pos_Time->Fill(  (fF2Param->fF2UPPAC_tdc_param[0]*inp_evt-> F2UPPAC_L) - (fF2Param->fF2UPPAC_tdc_param[1]*inp_evt-> F2UPPAC_R ),
+			     (fF2Param->fF2UPPAC_tdc_param[3]*inp_evt-> F2UPPAC_D) - (fF2Param->fF2UPPAC_tdc_param[2]*inp_evt-> F2UPPAC_U )    );
+
+   F2_DPPAC_Cal_Time_X ->Fill(  (fF2Param->fF2DPPAC_tdc_param[0]*inp_evt-> F2DPPAC_L) - (fF2Param->fF2DPPAC_tdc_param[1]*inp_evt-> F2UPPAC_R )    );  
+   F2_DPPAC_Cal_Time_Y ->Fill(  (fF2Param->fF2DPPAC_tdc_param[3]*inp_evt-> F2DPPAC_D) - (fF2Param->fF2DPPAC_tdc_param[2]*inp_evt-> F2UPPAC_U )    );
+
+   F2_DPPAC_Pos_Time->Fill(  (fF2Param->fF2DPPAC_tdc_param[0]*inp_evt-> F2DPPAC_L) - (fF2Param->fF2DPPAC_tdc_param[1]*inp_evt-> F2DPPAC_R ),
+			      (fF2Param->fF2DPPAC_tdc_param[3]*inp_evt-> F2DPPAC_D) - (fF2Param->fF2DPPAC_tdc_param[2]*inp_evt-> F2DPPAC_U )      );
+
+   // 28052014 TETSUYA ADD
+   F3_UPPAC_Cal_Time_X ->Fill((fF3Param->fF3UPPAC_tdc_param[0]*inp_evt-> F3UPPAC_L) - (fF3Param->fF3UPPAC_tdc_param[1]*inp_evt-> F3UPPAC_R )    );     
+   F3_UPPAC_Cal_Time_Y ->Fill(  (fF3Param->fF3UPPAC_tdc_param[3]*inp_evt-> F3UPPAC_D) - (fF3Param->fF3UPPAC_tdc_param[2]*inp_evt-> F3UPPAC_U )    );
+
+   F3_UPPAC_Pos_Time->Fill(  (fF3Param->fF3UPPAC_tdc_param[0]*inp_evt-> F3UPPAC_L) - (fF3Param->fF3UPPAC_tdc_param[1]*inp_evt-> F3UPPAC_R ),
+			     (fF3Param->fF3UPPAC_tdc_param[3]*inp_evt-> F3UPPAC_D) - (fF3Param->fF3UPPAC_tdc_param[2]*inp_evt-> F3UPPAC_U )    );
+
+   F3_DPPAC_Cal_Time_X ->Fill(  (fF3Param->fF3DPPAC_tdc_param[0]*inp_evt-> F3DPPAC_L) - (fF3Param->fF3DPPAC_tdc_param[1]*inp_evt-> F3UPPAC_R )    );  
+   F3_DPPAC_Cal_Time_Y ->Fill(  (fF3Param->fF3DPPAC_tdc_param[3]*inp_evt-> F3DPPAC_D) - (fF3Param->fF3DPPAC_tdc_param[2]*inp_evt-> F3UPPAC_U )    );
+
+   F3_DPPAC_Pos_Time->Fill(  (fF3Param->fF3DPPAC_tdc_param[0]*inp_evt-> F3DPPAC_L) - (fF3Param->fF3DPPAC_tdc_param[1]*inp_evt-> F3DPPAC_R ),
+			      (fF3Param->fF3DPPAC_tdc_param[3]*inp_evt-> F3DPPAC_D) - (fF3Param->fF3DPPAC_tdc_param[2]*inp_evt-> F3DPPAC_U )      );
+   
+   // Yassid 03102013 PPAC absolute calibration
+   
+   // channels to ns
+ 
+   out_evt-> F2UPPAC_Cal_Pos_X_ns = (fF2Param->fF2UPPAC_tdc_param[0]*inp_evt-> F2UPPAC_L) - (fF2Param->fF2UPPAC_tdc_param[1]*inp_evt-> F2UPPAC_R );
+   
+   out_evt-> F2UPPAC_Cal_Pos_Y_ns = (fF2Param->fF2UPPAC_tdc_param[3]*inp_evt-> F2UPPAC_D) - (fF2Param->fF2UPPAC_tdc_param[2]*inp_evt-> F2UPPAC_U );
+   out_evt-> F2DPPAC_Cal_Pos_X_ns = (fF2Param->fF2DPPAC_tdc_param[0]*inp_evt-> F2DPPAC_L) - (fF2Param->fF2DPPAC_tdc_param[1]*inp_evt-> F2DPPAC_R );
+   out_evt-> F2DPPAC_Cal_Pos_Y_ns = (fF2Param->fF2DPPAC_tdc_param[3]*inp_evt-> F2DPPAC_D) - (fF2Param->fF2DPPAC_tdc_param[2]*inp_evt-> F2DPPAC_U );	
+   
+   // ns to mm
+   
+   out_evt-> F2UPPAC_Cal_Pos_X_mm = (out_evt-> F2UPPAC_Cal_Pos_X_ns*fF2Param->fF2UPPAC_tdc_ns2mm[0]) - fF2Param->fF2UPPAC_tdc_ns2mm[2] ;
+  out_evt-> F2UPPAC_Cal_Pos_Y_mm = (out_evt-> F2UPPAC_Cal_Pos_Y_ns*fF2Param->fF2UPPAC_tdc_ns2mm[1]) - fF2Param->fF2UPPAC_tdc_ns2mm[3] ;
+  out_evt-> F2DPPAC_Cal_Pos_X_mm = (out_evt-> F2DPPAC_Cal_Pos_X_ns*fF2Param->fF2DPPAC_tdc_ns2mm[0]) - fF2Param->fF2DPPAC_tdc_ns2mm[2] ;
+  out_evt-> F2DPPAC_Cal_Pos_Y_mm = (out_evt-> F2DPPAC_Cal_Pos_Y_ns*fF2Param->fF2DPPAC_tdc_ns2mm[1]) - fF2Param->fF2DPPAC_tdc_ns2mm[3] ;
+  
+
+  // e390 user offset	
+
+  //  out_evt-> F2UPPAC_Cal_Pos_X_mm = out_evt-> F2UPPAC_Cal_Pos_X_mm + fF2Param->fF2UPPAC_e390_offset[0];
+  //  out_evt-> F2UPPAC_Cal_Pos_Y_mm = out_evt-> F2UPPAC_Cal_Pos_Y_mm + fF2Param->fF2UPPAC_e390_offset[1];
+  //  out_evt-> F2DPPAC_Cal_Pos_X_mm = out_evt-> F2DPPAC_Cal_Pos_X_mm + fF2Param->fF2DPPAC_e390_offset[0];
+  //  out_evt-> F2DPPAC_Cal_Pos_Y_mm = out_evt-> F2DPPAC_Cal_Pos_Y_mm + fF2Param->fF2DPPAC_e390_offset[1]; 
+
+
+   // TETSUYA 28052014 F3 PPAC absolute calibration
+  
+   // channels to ns
+  
+  out_evt-> F3UPPAC_Cal_Pos_X_ns 
+    = (fF3Param->fF3UPPAC_tdc_param[0]*inp_evt-> F3UPPAC_L) - (fF3Param->fF3UPPAC_tdc_param[1]*inp_evt-> F3UPPAC_R );  
+  out_evt-> F3UPPAC_Cal_Pos_Y_ns 
+    = (fF3Param->fF3UPPAC_tdc_param[3]*inp_evt-> F3UPPAC_D) - (fF3Param->fF3UPPAC_tdc_param[2]*inp_evt-> F3UPPAC_U );
+  out_evt-> F3DPPAC_Cal_Pos_X_ns 
+    = (fF3Param->fF3DPPAC_tdc_param[0]*inp_evt-> F3DPPAC_L) - (fF3Param->fF3DPPAC_tdc_param[1]*inp_evt-> F3DPPAC_R );
+  out_evt-> F3DPPAC_Cal_Pos_Y_ns 
+    = (fF3Param->fF3DPPAC_tdc_param[3]*inp_evt-> F3DPPAC_D) - (fF3Param->fF3DPPAC_tdc_param[2]*inp_evt-> F3DPPAC_U );	
+
+   // ns to mm
+ 
+  out_evt-> F3UPPAC_Cal_Pos_X_mm 
+    = (out_evt-> F3UPPAC_Cal_Pos_X_ns*fF3Param->fF3UPPAC_tdc_ns2mm[0]) - fF3Param->fF3UPPAC_tdc_ns2mm[2] ;
+  out_evt-> F3UPPAC_Cal_Pos_Y_mm 
+    = (out_evt-> F3UPPAC_Cal_Pos_Y_ns*fF3Param->fF3UPPAC_tdc_ns2mm[1]) - fF3Param->fF3UPPAC_tdc_ns2mm[3] ;
+  out_evt-> F3DPPAC_Cal_Pos_X_mm 
+    = (out_evt-> F3DPPAC_Cal_Pos_X_ns*fF3Param->fF3DPPAC_tdc_ns2mm[0]) - fF3Param->fF3DPPAC_tdc_ns2mm[2] ;
+  out_evt-> F3DPPAC_Cal_Pos_Y_mm 
+    = (out_evt-> F3DPPAC_Cal_Pos_Y_ns*fF3Param->fF3DPPAC_tdc_ns2mm[1]) - fF3Param->fF3DPPAC_tdc_ns2mm[3] ;
+
+
+  // e390 user offset	
+  // TETSUYA CHANGE 20140528
+  //  out_evt-> F3UPPAC_Cal_Pos_X_mm = out_evt-> F3UPPAC_Cal_Pos_X_mm + fF3Param->fF3UPPAC_e390_offset[0];
+  //  out_evt-> F3UPPAC_Cal_Pos_Y_mm = out_evt-> F3UPPAC_Cal_Pos_Y_mm + fF3Param->fF3UPPAC_e390_offset[1];
+  //  out_evt-> F3DPPAC_Cal_Pos_X_mm = out_evt-> F3DPPAC_Cal_Pos_X_mm + fF3Param->fF3DPPAC_e390_offset[0];
+  //  out_evt-> F3DPPAC_Cal_Pos_Y_mm = out_evt-> F3DPPAC_Cal_Pos_Y_mm + fF3Param->fF3DPPAC_e390_offset[1]; 
+  // -------------------------------
+  
+  
+  // Filling PPAC position histograms
+  
+  
+  if(inp_evt->F2UPPAC_L>0 && inp_evt->F2UPPAC_R>0 && inp_evt-> F2UPPAC_U>0 &&  inp_evt-> F2UPPAC_D>0)
+    F2_UPPAC_Pos_mm->Fill(out_evt-> F2UPPAC_Cal_Pos_X_mm,out_evt-> F2UPPAC_Cal_Pos_Y_mm);
+  
+  
+  if(inp_evt->F2DPPAC_L>0 && inp_evt->F2DPPAC_R>0 && inp_evt-> F2DPPAC_U>0 &&  inp_evt-> F2DPPAC_D>0)
+    F2_DPPAC_Pos_mm->Fill(out_evt-> F2DPPAC_Cal_Pos_X_mm,out_evt-> F2DPPAC_Cal_Pos_Y_mm);
+  
+  
+  if(inp_evt->F3UPPAC_L>0 && inp_evt->F3UPPAC_R>0 && inp_evt-> F3UPPAC_U>0 &&  inp_evt-> F3UPPAC_D>0)
+    F3_UPPAC_Pos_mm->Fill(out_evt-> F3UPPAC_Cal_Pos_X_mm,out_evt-> F3UPPAC_Cal_Pos_Y_mm);
+  
+  
+  if(inp_evt->F3DPPAC_L>0 && inp_evt->F3DPPAC_R>0 && inp_evt-> F3DPPAC_U>0 &&  inp_evt-> F3DPPAC_D>0)
+    F3_DPPAC_Pos_mm->Fill(out_evt-> F3DPPAC_Cal_Pos_X_mm,out_evt-> F3DPPAC_Cal_Pos_Y_mm);
+
+
+
+
+	
+	
+
+
+/////////////////////// Beam profiles along the beam line    ////////////////////////////////
+
+
+	// Beam profile at different Z positions
+
+	// Yassid 071013 05:11 if conditions are needed to eliminate zeros and multihit residual contribution
+
+	for(int i=0;i<9;i++){
+	
+	if(inp_evt->F2UPPAC_L>0 && inp_evt->F2UPPAC_R>0 && inp_evt-> F2DPPAC_L>0 &&  inp_evt-> F2DPPAC_R>0){
+	  if(inp_evt->F2UPPAC_U>0 && inp_evt->F2UPPAC_D>0 && inp_evt-> F2DPPAC_U>0 &&  inp_evt-> F2DPPAC_D>0){	
+	
+	out_evt-> Beam_prof_x [i]= out_evt-> F2UPPAC_Cal_Pos_X_mm + 
+		((out_evt-> F2DPPAC_Cal_Pos_X_mm-out_evt-> F2UPPAC_Cal_Pos_X_mm)*(fF2Param->zpos[i] -
+		fF2Param->zpos[0]))/(fF2Param->zpos[1]-fF2Param->zpos[0]);
+		
+		
+		
+	
+	out_evt-> Beam_prof_y [i]= out_evt-> F2UPPAC_Cal_Pos_Y_mm + 
+		((out_evt-> F2DPPAC_Cal_Pos_Y_mm-out_evt-> F2UPPAC_Cal_Pos_Y_mm)*(fF2Param->zpos[i] -
+		  fF2Param->zpos[0]))/(fF2Param->zpos[1]-fF2Param->zpos[0]);	
+		
+		
+		}
+	}
+	
+	Beam_profile_z[i]->Fill(out_evt-> Beam_prof_x [i],out_evt-> Beam_prof_y [i]);	
+	 
+	
+	/////////// Conditioned histograms for Beam Profiles////// Yassid 03102013
+	//cout<<inp_evt->HODO_dE_Hit<<endl;
+	
+	//if(PID_Raw_GATE_Scint && PID_Raw_GATE_Scint->Test(inp_evt->F2_RF - inp_evt->F2_Tref,inp_evt->F2_Scint_Q)) { // For PID Gate
+	  
+	  //if(out_evt->HODO_dE_Hit>=1){
+	  
+	 // Beam_profile_z_cond[i]->Fill(out_evt-> Beam_prof_x [i],out_evt-> Beam_prof_y [i]);
+	  
+	  
+	//}
+			
+			
+			/*if(out_evt->HODO_dE5_Hit>=1){
+			  
+			Beam_profile_z_cond5[i]->Fill(out_evt-> Beam_prof_x [i],out_evt-> Beam_prof_y [i]);
+		
+		
+			}
+			
+			
+			if(out_evt->HODO_dE6_Hit>=1){
+		
+			Beam_profile_z_cond6[i]->Fill(out_evt-> Beam_prof_x [i],out_evt-> Beam_prof_y [i]);
+		
+		
+			}
+			
+			if(out_evt->HODO_dE7_Hit>=1){
+		
+			Beam_profile_z_cond7[i]->Fill(out_evt-> Beam_prof_x [i],out_evt-> Beam_prof_y [i]);
+		
+		
+			}*/
+			
+	 
+		
+	}// End of for for 9 beam line positions
+	
+
+
+
+	
+	
+	
+	/*Float_t Rndnum = randomnum->Rndm();
+	
+	out_evt-> dr_ang = -1000 +  (fF2Param->zpos[8]+1000)*Rndnum;
+	
+	out_evt-> dr_ang = 0;
+	
+	out_evt->Beam_trck_X = out_evt-> F2UPPAC_Cal_Pos_X_mm + 
+		((out_evt-> F2DPPAC_Cal_Pos_X_mm-out_evt-> F2UPPAC_Cal_Pos_X_mm)*(out_evt->dr_ang -
+		fF2Param->zpos[0]))/(fF2Param->zpos[1]-fF2Param->zpos[0]);	
+		
+		
+	out_evt->Beam_trck_Y = out_evt-> F2UPPAC_Cal_Pos_Y_mm + 
+		((out_evt-> F2DPPAC_Cal_Pos_Y_mm-out_evt-> F2UPPAC_Cal_Pos_Y_mm)*(out_evt->dr_ang -
+		fF2Param->zpos[0]))/(fF2Param->zpos[1]-fF2Param->zpos[0]);
+		
+		
+		Beam_trckZX->Fill(out_evt->dr_ang,out_evt->Beam_trck_X);
+		Beam_trckZY->Fill(out_evt->dr_ang,out_evt->Beam_trck_Y);	*/
+			
+		
+     
+
+   /*  for(Int_t ii=0;ii<Art_NUM_CHAN/2;ii++)
+     // out_evt->frData[cnt++] = inp_evt->fiCrate1[ii];
+
+   for(Int_t ii=0; ii<Art_NUM_CHAN/2; ii++)
+     // out_evt->frData[cnt++] = inp_evt->fiCrate2[ii];
+
+   for(Int_t ii=0;ii<Art_NUM_CHAN;ii++)
+     if(out_evt->frData[ii]) {
+        if(fWinCon && fWinCon->Test(out_evt->frData[ii])) fSum1->Fill(out_evt->frData[ii]);
+        fSum2->Fill(out_evt->frData[ii]);
+        fSum3->Fill(out_evt->frData[ii]);
+	}*/
+
+   // see comments in UnpackProc
+   out_evt->SetValid(isValid);
+   return isValid;
+}
+
+TH2* TArtAnlProc::MakeH2I_Profile(const char* foldername, 
+				int index) {
+   
+   
+    char zposname[100];
+    char fullname[100];
+    char histoname[100];
+    
+    if(index==0) sprintf(zposname,"F2UPPAC_Pos");
+    else if(index==1) sprintf(zposname,"F2DPPAC_Pos");
+    else if(index==2) sprintf(zposname,"F2Scint_Pos");
+    else if(index==3) sprintf(zposname,"F2GateValve_Pos");
+    else if(index==4) sprintf(zposname,"F2Viewer_Pos");
+    else if(index==5) sprintf(zposname,"F2SChamberIn_Pos");
+    else if(index==6) sprintf(zposname,"F2Target_Pos");
+    else if(index==7) sprintf(zposname,"F2SChamber_Pos");
+    else if(index==8) sprintf(zposname,"F2Hodoscope_Pos");
+    
+    
+    sprintf(fullname,"%s/Profile_%s",foldername,zposname);
+    sprintf(histoname,"Profile_%s",zposname);
+   
+ 
+    return MakeTH2('I',fullname,histoname, 1000, -100., 100., 1000, -100., 100.);
+    
+}   
+
+
+TH2* TArtAnlProc::MakeH2I_Profile_cond(const char* foldername, 
+				int index, int cond) {
+   
+   
+    char zposname[100];
+    char fullname[100];
+    char histoname[100];
+    
+    if(index==0) sprintf(zposname,"F2UPPAC_Pos_cond");
+    else if(index==1) sprintf(zposname,"F2DPPAC_Pos_cond");
+    else if(index==2) sprintf(zposname,"F2Scint_Pos_cond");
+    else if(index==3) sprintf(zposname,"F2GateValve_Pos_cond");
+    else if(index==4) sprintf(zposname,"F2Viewer_Pos_cond");
+    else if(index==5) sprintf(zposname,"F2SChamberIn_Pos_cond");
+    else if(index==6) sprintf(zposname,"F2Target_Pos_cond");
+    else if(index==7) sprintf(zposname,"F2SChamber_Pos_cond");
+    else if(index==8) sprintf(zposname,"F2Hodoscope_Pos_cond");
+    
+    
+    sprintf(fullname,"%s/Profile_cond_%s_%02d",foldername,zposname,cond);
+    sprintf(histoname,"Profile_cond_%s_%02d",zposname,cond);
+   
+ 
+    return MakeTH2('I',fullname,histoname, 1000, -100., 100., 1000, -100., 100.);
+    
+}     
+
+
+TH2* TArtAnlProc::MakeH2I_TPC_ID(const char* foldername, 
+				int index) {
+   
+   
+    char posname[100];
+    char fullname[100];
+    char histoname[100];
+    
+    if(index==0) sprintf(posname,"Right-Up");
+    else if(index==1) sprintf(posname,"Right-Down");
+    else if(index==2) sprintf(posname,"Left-Up");
+    else if(index==3) sprintf(posname,"Left-Down");
+  
+    
+    
+    sprintf(fullname,"%s/TPC_PID_%s",foldername,posname);
+    sprintf(histoname,"TPC_PID_%s",posname);
+   
+ 
+    return MakeTH2('I',fullname,histoname, 1024, 1., 4096.,1024 , 1.,4096.);
+    
+}   

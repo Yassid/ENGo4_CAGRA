@@ -1,0 +1,1368 @@
+// $Id: TArtSortProc.cxx 933 2013-01-29 15:27:58Z linev $
+//-----------------------------------------------------------------------
+//       The GSI Online Offline Object Oriented (Go4) Project
+//         Experiment Data Processing at EE department, GSI
+//-----------------------------------------------------------------------
+// Copyright (C) 2000- GSI Helmholtzzentrum für Schwerionenforschung GmbH
+//                     Planckstr. 1, 64291 Darmstadt, Germany
+// Contact:            http://go4.gsi.de
+//-----------------------------------------------------------------------
+// This software can be used under the license agreements as stated
+// in Go4License.txt file which is part of the distribution.
+//-----------------------------------------------------------------------
+
+#include "TArtSortProc.h"
+
+#include <math.h>
+
+#include "TH1.h"
+#include "TH2.h"
+#include "TROOT.h"
+
+#include "TGo4WinCond.h"
+#include "TGo4PolyCond.h"
+#include "TGo4Analysis.h"
+
+#include "TArtSortEvent.h"
+#include "TArtUnpackEvent.h"
+//#include "TArtParam.h"
+
+//-----------------------------------------------------------
+TArtSortProc::TArtSortProc() :
+   TGo4EventProcessor(),
+   F2_u_ppac_l_t(0), F2_u_ppac_d_t(0), F2_u_ppac_r_t(0),F2_u_ppac_u_t(0), F2_u_ppac_a_t(0),
+   F2_d_ppac_l_t(0), F2_d_ppac_d_t(0), F2_d_ppac_r_t(0),F2_d_ppac_u_t(0), F2_d_ppac_a_t(0),
+   F3_u_ppac_l_t(0), F3_u_ppac_d_t(0), F3_u_ppac_r_t(0),F3_u_ppac_u_t(0), F3_u_ppac_a_t(0),
+   F2_d_ppac_pos(0), F2_u_ppac_pos(0),F3_u_ppac_pos(0),F2_d_ppac_pos_X(0), F2_u_ppac_pos_X(0),F3_u_ppac_pos_X(0), F2_d_ppac_pos_Y(0),F2_u_ppac_pos_Y(0),F3_u_ppac_pos_Y(0) 
+  
+{
+}
+
+//-----------------------------------------------------------
+TArtSortProc::TArtSortProc(const char* name) :
+   TGo4EventProcessor(name),
+   F2_u_ppac_l_t(0), F2_u_ppac_d_t(0), F2_u_ppac_r_t(0),F2_u_ppac_u_t(0), F2_u_ppac_a_t(0),
+   F2_d_ppac_l_t(0), F2_d_ppac_d_t(0), F2_d_ppac_r_t(0),F2_d_ppac_u_t(0), F2_d_ppac_a_t(0),
+   F3_u_ppac_l_t(0), F3_u_ppac_d_t(0), F3_u_ppac_r_t(0),F3_u_ppac_u_t(0), F3_u_ppac_a_t(0),
+   F2_d_ppac_pos(0), F2_u_ppac_pos(0),F3_u_ppac_pos(0),F2_d_ppac_pos_X(0), F2_u_ppac_pos_X(0),F3_u_ppac_pos_X(0), F2_d_ppac_pos_Y(0),F2_u_ppac_pos_Y(0),F3_u_ppac_pos_Y(0)
+  
+{
+   TGo4Log::Info("TArtSortProc: Create");
+   //// init user analysis objects:
+
+	char fibernamey[100];
+	char fiberfolder[100]; 
+
+   for(int i=0;i<310;i++){
+       sprintf(fibernamey,"F1_Fiber_%02d_Pos_Y",i);
+       sprintf(fiberfolder,"Sort/F1/F1_FIBER/F1_Fiber_%02d_Pos_Y",i);
+       F1_fiber_pos_y[i]= MakeTH1('I',fiberfolder,fibernamey,100,-20000,20000.);
+    }
+    
+        char fibernameycorr[100];
+	char fiberfoldercorr[100];
+    
+  /* for(int i=0;i<64;i++){ 
+   
+   	sprintf(fibernameycorr,"F1_Fiber_%02d_corr_Y",i);
+        sprintf(fiberfoldercorr,"Sort/F1/F1_FIBER_CORR/F1_Fiber_%02d_corr",i);
+   	F1_fiber_corr_1[i]= MakeTH2('I',fiberfoldercorr,fibernameycorr,100,10000.,30000.,100,12000.,16000.);
+   
+   }*/
+   
+     for(int i=0;i<16;i++){ 
+   
+   	sprintf(fibernameycorr,"F1_Q_%02d_corr_Y",i);
+        sprintf(fiberfoldercorr,"Sort/F1/F1_FIBER_Q_CORR/F1_Fiber_Q_%02d_corr",i);
+   	F1_Q_corr[i]= MakeTH2('I',fiberfoldercorr,fibernameycorr,200,50.,250.,200,50.,250.);
+   
+   }
+   
+  F1_fiber_pos = MakeTH2('I', "Sort/F1/F1_FIBER_POS","F1_FIBER_POS",305,0.,304.,1000,-2000.,2000.);
+
+ 
+
+  char fibernamewidth[100];
+  char fiberfolderwidth[100];
+  
+
+	 for(int i=0;i<128;i++){ 
+                sprintf(fibernamewidth,"F1_FIBER_%02d_Width",i);
+                sprintf(fiberfolderwidth,"Sort/F1/F1_FIBER_WIDTH/F1_Fiber_Width_%02d_corr",i);
+   		F1_fiber_sig_width[i] = MakeTH1('I',fiberfolderwidth,fibernamewidth, 4000, 1., 50000.);
+	}
+
+  
+   // Yassid 28092013 19:45 PPAC Histograms for v1190
+   F2_u_ppac_l_t     = MakeTH1('I', "Sort/F2/F2_U_PPAC_L", "F2_Upstream_PPAC_Left_Time", 4000, 1., 50000.);
+   F2_u_ppac_d_t     = MakeTH1('I', "Sort/F2/F2_U_PPAC_D", "F2_Upstream_PPAC_Down_Time", 4000, 1., 50000.);
+   F2_u_ppac_r_t     = MakeTH1('I', "Sort/F2/F2_U_PPAC_R", "F2_Upstream_PPAC_Right_Time", 4000, 1., 50000.);
+   F2_u_ppac_u_t     = MakeTH1('I', "Sort/F2/F2_U_PPAC_U", "F2_Upstream_PPAC_Up_Time", 4000, 1., 50000.); 
+   F2_u_ppac_a_t     = MakeTH1('I', "Sort/F2/F2_U_PPAC_A", "F2_Upstream_PPAC_Anode_Time", 4000, 1., 50000.);
+   F2_d_ppac_l_t     = MakeTH1('I', "Sort/F2/F2_D_PPAC_L", "F2_Downstream_PPAC_Left_Time", 4000, 1., 50000.);
+   F2_d_ppac_d_t     = MakeTH1('I', "Sort/F2/F2_D_PPAC_D", "F2_Downstream_PPAC_Down_Time", 4000, 1., 50000.);
+   F2_d_ppac_r_t     = MakeTH1('I', "Sort/F2/F2_D_PPAC_R", "F2_Downstream_PPAC_Right_Time", 4000, 1., 50000.);
+   F2_d_ppac_u_t     = MakeTH1('I', "Sort/F2/F2_D_PPAC_U", "F2_Downstream_PPAC_Up_Time", 4000, 1., 50000.); 
+   F2_d_ppac_a_t     = MakeTH1('I', "Sort/F2/F2_D_PPAC_A", "F2_Downstream_PPAC_Anode_Time", 4000, 1., 50000.);
+   // Yassid E419 06112013 17:05 Adding F3 Upstream PPAC for v1190 5us range
+   F3_u_ppac_l_t     = MakeTH1('I', "Sort/F3/F3_U_PPAC_L", "F3_Upstream_PPAC_Left_Time", 4000, 1., 50000.);
+   F3_u_ppac_d_t     = MakeTH1('I', "Sort/F3/F3_U_PPAC_D", "F3_Upstream_PPAC_Down_Time", 4000, 1., 50000.);
+   F3_u_ppac_r_t     = MakeTH1('I', "Sort/F3/F3_U_PPAC_R", "F3_Upstream_PPAC_Right_Time", 4000, 1., 50000.);
+   F3_u_ppac_u_t     = MakeTH1('I', "Sort/F3/F3_U_PPAC_U", "F3_Upstream_PPAC_Up_Time", 4000, 1., 50000.); 
+   F3_u_ppac_a_t     = MakeTH1('I', "Sort/F3/F3_U_PPAC_A", "F3_Upstream_PPAC_Anode_Time", 4000, 1., 50000.);      
+   
+   
+   F2_u_ppac_pos     = MakeTH2('I', "Sort/F2/F2_U_POS","F2_Upstream_PPAC_position",1000, -2000., 2000., 1000, -2000., 2000.);
+   F2_d_ppac_pos     = MakeTH2('I', "Sort/F2/F2_D_POS","F2_Downstream_PPAC_position",1000, -2000., 2000., 1000, -2000., 2000.);
+   F3_u_ppac_pos     = MakeTH2('I', "Sort/F3/F3_U_POS","F3_Upstream_PPAC_position",1000, -2000., 2000., 1000, -2000., 2000.);
+   
+   F2_d_ppac_pos_X  =  MakeTH1('I', "Sort/F2/F2_D_POS_X","F2_Downstream_PPAC_position_X",1000, -2000., 2000.);
+   F2_u_ppac_pos_X  =  MakeTH1('I', "Sort/F2/F2_U_POS_X","F2_Upstream_PPAC_position_X",1000, -2000., 2000.);
+   F3_u_ppac_pos_X  =  MakeTH1('I', "Sort/F3/F3_U_POS_X","F3_Upstream_PPAC_position_X",1000, -2000., 2000.);  
+
+   F2_d_ppac_pos_Y =   MakeTH1('I', "Sort/F2/F2_D_POS_Y","F2_Downstream_PPAC_position_Y",1000, -2000., 2000.); 
+   F2_u_ppac_pos_Y =   MakeTH1('I', "Sort/F2/F2_U_POS_Y","F2_Upstream_PPAC_position_Y",1000, -2000., 2000.);
+   F3_u_ppac_pos_Y =   MakeTH1('I', "Sort/F3/F3_U_POS_Y","F3_Upstream_PPAC_position_Y",1000, -2000., 2000.);  
+
+
+   F2_Sil            =  MakeTH1('I', "Sort/F2/F2_Sil", "F2_Silicon", 4096, 1., 4096.);
+   F2_Sci_q          =  MakeTH1('I', "Sort/F2/F2_Sci_Q", "F2_Scintillator_Charge", 4096, 1., 4096.);
+   F2_Sci_t          =  MakeTH1('I', "Sort/F2/F2_Sci_T", "F2_Scintillator_time", 4096, 1., 4096.);
+   
+   F2_RaF            =  MakeTH1('I', "Sort/F2/F2_RaF", "F2_Radiofrequency", 50000, 1., 50000.);
+   F2_Tref_TDC       =  MakeTH1('I', "Sort/F2/F2_Tref_TDC", "F2_Tref_TDC_v1190", 4000, 1., 50000.);
+   
+   F2_PID_Raw_Si     =  MakeTH2('I', "Sort/F2/F2_PID_Raw_Si","F2_PID_Raw_Si",100, 46000., 46500.,1000,1., 4096.);
+   F2_PID_Raw_Scint  =  MakeTH2('I', "Sort/F2/F2_PID_Raw_Scint","F2_PID_Raw_Scint",100, 46000., 46500., 1000,1.,4096.);
+   
+   //HODO_RaF          =  MakeTH1('I', "Sort/HODO/HODO_RaF", "HODO_Radiofrequency", 4096, 1., 4096.);
+   //HODO_RaF_Del      =  MakeTH1('I', "Sort/HODO/HODO_RaF_Del", "HODO_Radiofrequency_Delayed", 4096, 1., 4096.);
+   
+   F2_PPACT_Trigger  =  MakeTH1('I', "Sort/F2/F2_PPAC_Trigger", "PPAC_Trigger", 4096, 1., 4096.);
+   
+
+
+   
+    char fname[100]; 
+
+    // Yassid 06112013 17:23 Si and CsI histograms
+    
+
+    for(int i=0;i<4;i++){
+      TPC_Si_Center[i]= MakeH1I_TPCSi("Sort/TPC/TPC_Si",0,i+2);
+    }
+
+
+    for(int i=0;i<2;i++){
+      TPC_Si_Right[i]= MakeH1I_TPCSi("Sort/TPC/TPC_Si",1,i);
+      TPC_Si_Left[i]= MakeH1I_TPCSi("Sort/TPC/TPC_Si",2,i);
+    }
+
+
+    char histonameTPCCsI[100];
+       for(int i=0;i<4;i++){ 
+          for(int j=0;j<6;j++){
+      // sprintf(histonameTPCCsI,"TPC_CsI_Center_%02d",i)
+      // TPC_CsI_Center[i]=MakeTH1('I',"Sort/TPC/TPC_CsI",histonameTPCCsI, 4096., 1., 4096.);
+	    TPC_CsI_Center[i][j]=MakeH1I_TPCCsI("Sort/TPC/TPC_CsI",i,j,0);
+          }
+      }
+
+     
+      Double_t pidp[4][2]={{46270,0},{46270,4000},{46330,4000},{46330,0}};
+      
+      PID_Raw_GATE = MakePolyCond("PID_Raw_Gate",4,pidp,"F2_PID_Raw_Scint");
+     
+
+
+}
+//-----------------------------------------------------------
+TArtSortProc::~TArtSortProc()
+{
+   TGo4Log::Info("TArtSortProc: Delete");
+   // if (fWinCon) fWinCon->PrintCondition(true);
+ 
+}
+//-----------------------------------------------------------
+Bool_t TArtSortProc::BuildEvent(TGo4EventElement* dest)
+{
+   Bool_t isValid=kFALSE; // validity of output event
+
+   TArtUnpackEvent* inp_evt  = (TArtUnpackEvent*) GetInputEvent();
+   TArtSortEvent* out_evt = (TArtSortEvent*) dest;
+
+   // see comments in UnpackProc
+   if((inp_evt==0) || !inp_evt->IsValid()){ // input invalid
+      out_evt->SetValid(isValid); // invalid
+      return isValid; // must be same is for SetValid
+   }
+   isValid=kTRUE;
+
+   Int_t cnt(0);
+
+   
+
+ 	
+
+
+ 
+
+   for(int i=0;i<128;i++){ // Yassid 08052014 Width of the pulse for each hit
+     for(int j=0;j<10;j++){
+       //F1_fiber_sig_width[i]->Fill(inp_evt->sva02_tdc[4][i][j] - inp_evt->sva02_tdc[3][i][j]);
+       
+     }
+   }
+   
+	// FIBER detector assignment Yassid 28052014
+   
+   /* if(inp_evt->sva02_tdc[4][8][0]>100){	// MA2 1
+     
+     if(inp_evt->sva02_tdc[4][105][0]>100) out_evt->F1FIBER_Y_POS[1]	       = inp_evt->sva02_tdc[4][8][0]-inp_evt->sva02_tdc[4][105][0];
+     if(inp_evt->sva02_tdc[4][115][0]>100) out_evt->F1FIBER_Y_POS[2]	       = inp_evt->sva02_tdc[4][8][0]-inp_evt->sva02_tdc[4][115][0];
+     if(inp_evt->sva02_tdc[4][71][0]>100) out_evt->F1FIBER_Y_POS[3]	       = inp_evt->sva02_tdc[4][8][0]-inp_evt->sva02_tdc[4][71][0];
+     if(inp_evt->sva02_tdc[4][81][0]>100) out_evt->F1FIBER_Y_POS[4]	       = inp_evt->sva02_tdc[4][8][0]-inp_evt->sva02_tdc[4][81][0];
+     if(inp_evt->sva02_tdc[4][107][0]>100) out_evt->F1FIBER_Y_POS[5]	       = inp_evt->sva02_tdc[4][8][0]-inp_evt->sva02_tdc[4][107][0];
+     if(inp_evt->sva02_tdc[4][117][0]>100)out_evt->F1FIBER_Y_POS[6]	       = inp_evt->sva02_tdc[4][8][0]-inp_evt->sva02_tdc[4][117][0];
+     if(inp_evt->sva02_tdc[4][97][0]>100) out_evt->F1FIBER_Y_POS[7]	       = inp_evt->sva02_tdc[4][8][0]-inp_evt->sva02_tdc[4][97][0];
+		if(inp_evt->sva02_tdc[4][83][0]>100) out_evt->F1FIBER_Y_POS[8] = inp_evt->sva02_tdc[4][8][0]-inp_evt->sva02_tdc[4][83][0];
+		
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][9][0]>100){	//MA2 2
+	
+		if(inp_evt->sva02_tdc[4][104][0]>100) out_evt->F1FIBER_Y_POS[257] = inp_evt->sva02_tdc[4][9][0]-inp_evt->sva02_tdc[4][104][0];
+		if(inp_evt->sva02_tdc[4][114][0]>100) out_evt->F1FIBER_Y_POS[258] = inp_evt->sva02_tdc[4][9][0]-inp_evt->sva02_tdc[4][114][0];
+		if(inp_evt->sva02_tdc[4][70][0]>100) out_evt->F1FIBER_Y_POS[259]  = inp_evt->sva02_tdc[4][9][0]-inp_evt->sva02_tdc[4][70][0];
+		if(inp_evt->sva02_tdc[4][80][0]>100) out_evt->F1FIBER_Y_POS[260]  = inp_evt->sva02_tdc[4][9][0]-inp_evt->sva02_tdc[4][80][0];
+		if(inp_evt->sva02_tdc[4][106][0]>100) out_evt->F1FIBER_Y_POS[261] = inp_evt->sva02_tdc[4][9][0]-inp_evt->sva02_tdc[4][106][0];
+		if(inp_evt->sva02_tdc[4][116][0]>100) out_evt->F1FIBER_Y_POS[262] = inp_evt->sva02_tdc[4][9][0]-inp_evt->sva02_tdc[4][116][0];
+		if(inp_evt->sva02_tdc[4][96][0]>100) out_evt->F1FIBER_Y_POS[263]  = inp_evt->sva02_tdc[4][9][0]-inp_evt->sva02_tdc[4][96][0];
+		if(inp_evt->sva02_tdc[4][82][0]>100) out_evt->F1FIBER_Y_POS[264]  = inp_evt->sva02_tdc[4][9][0]-inp_evt->sva02_tdc[4][82][0];
+	
+	}
+	
+	
+	
+	
+	
+	if(inp_evt->sva02_tdc[4][19][0]>100){	//MA2 3
+	
+		if(inp_evt->sva02_tdc[4][105][0]>100) out_evt->F1FIBER_Y_POS[9]	      =	inp_evt->sva02_tdc[4][19][0]-inp_evt->sva02_tdc[4][105][0];
+		else if(inp_evt->sva02_tdc[4][115][0]>100) out_evt->F1FIBER_Y_POS[10] =	inp_evt->sva02_tdc[4][19][0]-inp_evt->sva02_tdc[4][115][0];
+		else if(inp_evt->sva02_tdc[4][71][0]>100) out_evt->F1FIBER_Y_POS[11]  =	inp_evt->sva02_tdc[4][19][0]-inp_evt->sva02_tdc[4][71][0];
+		else if(inp_evt->sva02_tdc[4][81][0]>100) out_evt->F1FIBER_Y_POS[12]  =	inp_evt->sva02_tdc[4][19][0]-inp_evt->sva02_tdc[4][81][0];
+		else if(inp_evt->sva02_tdc[4][107][0]>100) out_evt->F1FIBER_Y_POS[13] =	inp_evt->sva02_tdc[4][19][0]-inp_evt->sva02_tdc[4][107][0];
+		else if(inp_evt->sva02_tdc[4][117][0]>100) out_evt->F1FIBER_Y_POS[14] =	inp_evt->sva02_tdc[4][19][0]-inp_evt->sva02_tdc[4][117][0];
+		else if(inp_evt->sva02_tdc[4][97][0]>100) out_evt->F1FIBER_Y_POS[15]  =	inp_evt->sva02_tdc[4][19][0]-inp_evt->sva02_tdc[4][97][0];
+		else if(inp_evt->sva02_tdc[4][83][0]>100) out_evt->F1FIBER_Y_POS[16]  =	inp_evt->sva02_tdc[4][19][0]-inp_evt->sva02_tdc[4][83][0];
+	
+	}
+	
+	
+	
+	
+	
+	
+	
+	if(inp_evt->sva02_tdc[4][20][0]>100){	//MA2 4
+	
+		if(inp_evt->sva02_tdc[4][104][0]>100) out_evt->F1FIBER_Y_POS[265] = inp_evt->sva02_tdc[4][20][0]-inp_evt->sva02_tdc[4][104][0];
+		if(inp_evt->sva02_tdc[4][114][0]>100) out_evt->F1FIBER_Y_POS[266] = inp_evt->sva02_tdc[4][20][0]-inp_evt->sva02_tdc[4][114][0];
+		if(inp_evt->sva02_tdc[4][70][0]>100) out_evt->F1FIBER_Y_POS[267]  = inp_evt->sva02_tdc[4][20][0]-inp_evt->sva02_tdc[4][70][0];
+		if(inp_evt->sva02_tdc[4][80][0]>100) out_evt->F1FIBER_Y_POS[268]  = inp_evt->sva02_tdc[4][20][0]-inp_evt->sva02_tdc[4][80][0];
+		if(inp_evt->sva02_tdc[4][106][0]>100) out_evt->F1FIBER_Y_POS[269] = inp_evt->sva02_tdc[4][20][0]-inp_evt->sva02_tdc[4][106][0];
+		if(inp_evt->sva02_tdc[4][116][0]>100) out_evt->F1FIBER_Y_POS[270] = inp_evt->sva02_tdc[4][20][0]-inp_evt->sva02_tdc[4][116][0];
+		if(inp_evt->sva02_tdc[4][96][0]>100) out_evt->F1FIBER_Y_POS[271]  = inp_evt->sva02_tdc[4][20][0]-inp_evt->sva02_tdc[4][96][0];
+		if(inp_evt->sva02_tdc[4][82][0]>100) out_evt->F1FIBER_Y_POS[272]  = inp_evt->sva02_tdc[4][20][0]-inp_evt->sva02_tdc[4][82][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][6][0]>100){	//MA2 5
+	
+		if(inp_evt->sva02_tdc[4][105][0]>100) out_evt->F1FIBER_Y_POS[17] = inp_evt->sva02_tdc[4][6][0]-inp_evt->sva02_tdc[4][105][0];
+		if(inp_evt->sva02_tdc[4][115][0]>100) out_evt->F1FIBER_Y_POS[18] = inp_evt->sva02_tdc[4][6][0]-inp_evt->sva02_tdc[4][115][0];
+		if(inp_evt->sva02_tdc[4][71][0]>100) out_evt->F1FIBER_Y_POS[19]	 = inp_evt->sva02_tdc[4][6][0]-inp_evt->sva02_tdc[4][71][0];
+		if(inp_evt->sva02_tdc[4][81][0]>100) out_evt->F1FIBER_Y_POS[20]	 = inp_evt->sva02_tdc[4][6][0]-inp_evt->sva02_tdc[4][81][0];
+		if(inp_evt->sva02_tdc[4][107][0]>100) out_evt->F1FIBER_Y_POS[21] = inp_evt->sva02_tdc[4][6][0]-inp_evt->sva02_tdc[4][107][0];
+		if(inp_evt->sva02_tdc[4][117][0]>100) out_evt->F1FIBER_Y_POS[22] = inp_evt->sva02_tdc[4][6][0]-inp_evt->sva02_tdc[4][117][0];
+		if(inp_evt->sva02_tdc[4][97][0]>100) out_evt->F1FIBER_Y_POS[23]	 = inp_evt->sva02_tdc[4][6][0]-inp_evt->sva02_tdc[4][97][0];
+		if(inp_evt->sva02_tdc[4][83][0]>100) out_evt->F1FIBER_Y_POS[24]	 = inp_evt->sva02_tdc[4][6][0]-inp_evt->sva02_tdc[4][83][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][7][0]>100){	//MA2 6
+	
+		 if(inp_evt->sva02_tdc[4][104][0]>100) out_evt->F1FIBER_Y_POS[273] = inp_evt->sva02_tdc[4][7][0]-inp_evt->sva02_tdc[4][104][0];
+		 if(inp_evt->sva02_tdc[4][114][0]>100) out_evt->F1FIBER_Y_POS[274] = inp_evt->sva02_tdc[4][7][0]-inp_evt->sva02_tdc[4][114][0];
+		 if(inp_evt->sva02_tdc[4][70][0]>100) out_evt->F1FIBER_Y_POS[275]  = inp_evt->sva02_tdc[4][7][0]-inp_evt->sva02_tdc[4][70][0];
+		 if(inp_evt->sva02_tdc[4][80][0]>100) out_evt->F1FIBER_Y_POS[276]  = inp_evt->sva02_tdc[4][7][0]-inp_evt->sva02_tdc[4][80][0];
+		 if(inp_evt->sva02_tdc[4][106][0]>100) out_evt->F1FIBER_Y_POS[277] = inp_evt->sva02_tdc[4][7][0]-inp_evt->sva02_tdc[4][106][0];
+		 if(inp_evt->sva02_tdc[4][116][0]>100) out_evt->F1FIBER_Y_POS[278] = inp_evt->sva02_tdc[4][7][0]-inp_evt->sva02_tdc[4][116][0];
+		 if(inp_evt->sva02_tdc[4][96][0]>100) out_evt->F1FIBER_Y_POS[279]  = inp_evt->sva02_tdc[4][7][0]-inp_evt->sva02_tdc[4][96][0];
+		 if(inp_evt->sva02_tdc[4][82][0]>100) out_evt->F1FIBER_Y_POS[280]  = inp_evt->sva02_tdc[4][7][0]-inp_evt->sva02_tdc[4][82][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][48][0]>100){	//MA2 7
+	
+		if(inp_evt->sva02_tdc[4][105][0]>100) out_evt->F1FIBER_Y_POS[25] = inp_evt->sva02_tdc[4][48][0]-inp_evt->sva02_tdc[4][105][0];
+		if(inp_evt->sva02_tdc[4][115][0]>100) out_evt->F1FIBER_Y_POS[26] = inp_evt->sva02_tdc[4][48][0]-inp_evt->sva02_tdc[4][115][0];
+		if(inp_evt->sva02_tdc[4][71][0]>100) out_evt->F1FIBER_Y_POS[27]	 = inp_evt->sva02_tdc[4][48][0]-inp_evt->sva02_tdc[4][71][0];
+		if(inp_evt->sva02_tdc[4][81][0]>100) out_evt->F1FIBER_Y_POS[28]	 = inp_evt->sva02_tdc[4][48][0]-inp_evt->sva02_tdc[4][81][0];
+		if(inp_evt->sva02_tdc[4][107][0]>100) out_evt->F1FIBER_Y_POS[29] = inp_evt->sva02_tdc[4][48][0]-inp_evt->sva02_tdc[4][107][0];
+		if(inp_evt->sva02_tdc[4][117][0]>100) out_evt->F1FIBER_Y_POS[30] = inp_evt->sva02_tdc[4][48][0]-inp_evt->sva02_tdc[4][117][0];
+		if(inp_evt->sva02_tdc[4][97][0]>100) out_evt->F1FIBER_Y_POS[31]	 = inp_evt->sva02_tdc[4][48][0]-inp_evt->sva02_tdc[4][97][0];
+		if(inp_evt->sva02_tdc[4][83][0]>100) out_evt->F1FIBER_Y_POS[32]	 = inp_evt->sva02_tdc[4][48][0]-inp_evt->sva02_tdc[4][83][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][49][0]>100){	//MA2 8
+	
+		if(inp_evt->sva02_tdc[4][104][0]>100) out_evt->F1FIBER_Y_POS[281] = inp_evt->sva02_tdc[4][49][0]-inp_evt->sva02_tdc[4][104][0];
+		if(inp_evt->sva02_tdc[4][114][0]>100) out_evt->F1FIBER_Y_POS[282] = inp_evt->sva02_tdc[4][49][0]-inp_evt->sva02_tdc[4][114][0];
+		if(inp_evt->sva02_tdc[4][70][0]>100) out_evt->F1FIBER_Y_POS[283]  = inp_evt->sva02_tdc[4][49][0]-inp_evt->sva02_tdc[4][70][0];
+		if(inp_evt->sva02_tdc[4][80][0]>100) out_evt->F1FIBER_Y_POS[284]  = inp_evt->sva02_tdc[4][49][0]-inp_evt->sva02_tdc[4][80][0];
+		if(inp_evt->sva02_tdc[4][106][0]>100) out_evt->F1FIBER_Y_POS[285] = inp_evt->sva02_tdc[4][49][0]-inp_evt->sva02_tdc[4][106][0];
+		if(inp_evt->sva02_tdc[4][116][0]>100) out_evt->F1FIBER_Y_POS[286] = inp_evt->sva02_tdc[4][49][0]-inp_evt->sva02_tdc[4][116][0];
+		if(inp_evt->sva02_tdc[4][96][0]>100) out_evt->F1FIBER_Y_POS[287]  = inp_evt->sva02_tdc[4][49][0]-inp_evt->sva02_tdc[4][96][0];
+		if(inp_evt->sva02_tdc[4][82][0]>100) out_evt->F1FIBER_Y_POS[288]  = inp_evt->sva02_tdc[4][49][0]-inp_evt->sva02_tdc[4][82][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][10][0]>100){	//MA2 9
+	
+		if(inp_evt->sva02_tdc[4][105][0]>100) out_evt->F1FIBER_Y_POS[33] = inp_evt->sva02_tdc[4][10][0]-inp_evt->sva02_tdc[4][105][0];
+		if(inp_evt->sva02_tdc[4][115][0]>100) out_evt->F1FIBER_Y_POS[34] = inp_evt->sva02_tdc[4][10][0]-inp_evt->sva02_tdc[4][115][0];
+		if(inp_evt->sva02_tdc[4][71][0]>100) out_evt->F1FIBER_Y_POS[35]	 = inp_evt->sva02_tdc[4][10][0]-inp_evt->sva02_tdc[4][71][0];
+		if(inp_evt->sva02_tdc[4][81][0]>100) out_evt->F1FIBER_Y_POS[36]	 = inp_evt->sva02_tdc[4][10][0]-inp_evt->sva02_tdc[4][81][0];
+		if(inp_evt->sva02_tdc[4][107][0]>100) out_evt->F1FIBER_Y_POS[37] = inp_evt->sva02_tdc[4][10][0]-inp_evt->sva02_tdc[4][107][0];
+		if(inp_evt->sva02_tdc[4][117][0]>100) out_evt->F1FIBER_Y_POS[38] = inp_evt->sva02_tdc[4][10][0]-inp_evt->sva02_tdc[4][117][0];
+		if(inp_evt->sva02_tdc[4][97][0]>100) out_evt->F1FIBER_Y_POS[39]	 = inp_evt->sva02_tdc[4][10][0]-inp_evt->sva02_tdc[4][97][0];
+		if(inp_evt->sva02_tdc[4][83][0]>100) out_evt->F1FIBER_Y_POS[40]	 = inp_evt->sva02_tdc[4][10][0]-inp_evt->sva02_tdc[4][83][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][11][0]>100){	//MA2 10
+	
+		if(inp_evt->sva02_tdc[4][104][0]>100) out_evt->F1FIBER_Y_POS[289] = inp_evt->sva02_tdc[4][11][0]-inp_evt->sva02_tdc[4][104][0];
+		if(inp_evt->sva02_tdc[4][114][0]>100) out_evt->F1FIBER_Y_POS[290] = inp_evt->sva02_tdc[4][11][0]-inp_evt->sva02_tdc[4][114][0];
+		if(inp_evt->sva02_tdc[4][70][0]>100) out_evt->F1FIBER_Y_POS[291]  = inp_evt->sva02_tdc[4][11][0]-inp_evt->sva02_tdc[4][70][0];
+		if(inp_evt->sva02_tdc[4][80][0]>100) out_evt->F1FIBER_Y_POS[292]  = inp_evt->sva02_tdc[4][11][0]-inp_evt->sva02_tdc[4][80][0];
+		if(inp_evt->sva02_tdc[4][106][0]>100) out_evt->F1FIBER_Y_POS[293] = inp_evt->sva02_tdc[4][11][0]-inp_evt->sva02_tdc[4][106][0];
+		if(inp_evt->sva02_tdc[4][116][0]>100) out_evt->F1FIBER_Y_POS[294] = inp_evt->sva02_tdc[4][11][0]-inp_evt->sva02_tdc[4][116][0];
+		if(inp_evt->sva02_tdc[4][96][0]>100) out_evt->F1FIBER_Y_POS[295]  = inp_evt->sva02_tdc[4][11][0]-inp_evt->sva02_tdc[4][96][0];
+		if(inp_evt->sva02_tdc[4][82][0]>100) out_evt->F1FIBER_Y_POS[296]  = inp_evt->sva02_tdc[4][11][0]-inp_evt->sva02_tdc[4][82][0];
+	
+	}
+	
+	
+	
+	if(inp_evt->sva02_tdc[4][21][0]>100){	//MA2 11
+	
+		if(inp_evt->sva02_tdc[4][105][0]>100) out_evt->F1FIBER_Y_POS[41] = inp_evt->sva02_tdc[4][21][0]-inp_evt->sva02_tdc[4][105][0];
+		if(inp_evt->sva02_tdc[4][115][0]>100) out_evt->F1FIBER_Y_POS[42] = inp_evt->sva02_tdc[4][21][0]-inp_evt->sva02_tdc[4][115][0];
+		if(inp_evt->sva02_tdc[4][71][0]>100) out_evt->F1FIBER_Y_POS[43]	 = inp_evt->sva02_tdc[4][21][0]-inp_evt->sva02_tdc[4][71][0];
+		if(inp_evt->sva02_tdc[4][81][0]>100) out_evt->F1FIBER_Y_POS[44]	 = inp_evt->sva02_tdc[4][21][0]-inp_evt->sva02_tdc[4][81][0];
+		if(inp_evt->sva02_tdc[4][107][0]>100) out_evt->F1FIBER_Y_POS[45] = inp_evt->sva02_tdc[4][21][0]-inp_evt->sva02_tdc[4][107][0];
+		if(inp_evt->sva02_tdc[4][117][0]>100) out_evt->F1FIBER_Y_POS[46] = inp_evt->sva02_tdc[4][21][0]-inp_evt->sva02_tdc[4][117][0];
+		if(inp_evt->sva02_tdc[4][97][0]>100) out_evt->F1FIBER_Y_POS[47]	 = inp_evt->sva02_tdc[4][21][0]-inp_evt->sva02_tdc[4][97][0];
+		 if(inp_evt->sva02_tdc[4][83][0]>100) out_evt->F1FIBER_Y_POS[48] = inp_evt->sva02_tdc[4][21][0]-inp_evt->sva02_tdc[4][83][0];
+	
+	}
+	
+	
+	
+	if(inp_evt->sva02_tdc[4][22][0]>100){	//MA2 12
+	
+		if(inp_evt->sva02_tdc[4][104][0]>100) out_evt->F1FIBER_Y_POS[297]  = inp_evt->sva02_tdc[4][22][0]-inp_evt->sva02_tdc[4][104][0];
+		 if(inp_evt->sva02_tdc[4][114][0]>100) out_evt->F1FIBER_Y_POS[298] = inp_evt->sva02_tdc[4][22][0]-inp_evt->sva02_tdc[4][114][0];
+		 if(inp_evt->sva02_tdc[4][70][0]>100) out_evt->F1FIBER_Y_POS[299]  = inp_evt->sva02_tdc[4][22][0]-inp_evt->sva02_tdc[4][70][0];
+		 if(inp_evt->sva02_tdc[4][80][0]>100) out_evt->F1FIBER_Y_POS[300]  = inp_evt->sva02_tdc[4][22][0]-inp_evt->sva02_tdc[4][80][0];
+	        if(inp_evt->sva02_tdc[4][106][0]>100) out_evt->F1FIBER_Y_POS[301]  = inp_evt->sva02_tdc[4][22][0]-inp_evt->sva02_tdc[4][106][0];
+	        if(inp_evt->sva02_tdc[4][116][0]>100) out_evt->F1FIBER_Y_POS[302]  = inp_evt->sva02_tdc[4][22][0]-inp_evt->sva02_tdc[4][116][0];
+	        if(inp_evt->sva02_tdc[4][96][0]>100) out_evt->F1FIBER_Y_POS[303]   = inp_evt->sva02_tdc[4][22][0]-inp_evt->sva02_tdc[4][96][0];
+		
+	
+	}
+	
+	
+	
+	if(inp_evt->sva02_tdc[4][32][0]>100){	//MA2 13
+	
+		if(inp_evt->sva02_tdc[4][105][0]>100) out_evt->F1FIBER_Y_POS[49]  = inp_evt->sva02_tdc[4][32][0]-inp_evt->sva02_tdc[4][105][0];
+		 if(inp_evt->sva02_tdc[4][115][0]>100) out_evt->F1FIBER_Y_POS[50] = inp_evt->sva02_tdc[4][32][0]-inp_evt->sva02_tdc[4][115][0];
+		 if(inp_evt->sva02_tdc[4][71][0]>100) out_evt->F1FIBER_Y_POS[51]  = inp_evt->sva02_tdc[4][32][0]-inp_evt->sva02_tdc[4][71][0];
+		 if(inp_evt->sva02_tdc[4][81][0]>100) out_evt->F1FIBER_Y_POS[52]  = inp_evt->sva02_tdc[4][32][0]-inp_evt->sva02_tdc[4][81][0];
+		 if(inp_evt->sva02_tdc[4][107][0]>100) out_evt->F1FIBER_Y_POS[53] = inp_evt->sva02_tdc[4][32][0]-inp_evt->sva02_tdc[4][107][0];
+		 if(inp_evt->sva02_tdc[4][117][0]>100) out_evt->F1FIBER_Y_POS[54] = inp_evt->sva02_tdc[4][32][0]-inp_evt->sva02_tdc[4][117][0];
+		 if(inp_evt->sva02_tdc[4][97][0]>100) out_evt->F1FIBER_Y_POS[55]  = inp_evt->sva02_tdc[4][32][0]-inp_evt->sva02_tdc[4][97][0];
+		 if(inp_evt->sva02_tdc[4][83][0]>100) out_evt->F1FIBER_Y_POS[56]  = inp_evt->sva02_tdc[4][32][0]-inp_evt->sva02_tdc[4][83][0];
+	
+	}
+	
+	
+	
+	if(inp_evt->sva02_tdc[4][50][0]>100){	//MA2 15
+	
+		if(inp_evt->sva02_tdc[4][105][0]>100) out_evt->F1FIBER_Y_POS[57]  = inp_evt->sva02_tdc[4][50][0]-inp_evt->sva02_tdc[4][105][0];
+		 if(inp_evt->sva02_tdc[4][115][0]>100) out_evt->F1FIBER_Y_POS[58] = inp_evt->sva02_tdc[4][50][0]-inp_evt->sva02_tdc[4][115][0];
+		 if(inp_evt->sva02_tdc[4][71][0]>100) out_evt->F1FIBER_Y_POS[59]  = inp_evt->sva02_tdc[4][50][0]-inp_evt->sva02_tdc[4][71][0];
+		 if(inp_evt->sva02_tdc[4][81][0]>100) out_evt->F1FIBER_Y_POS[60]  = inp_evt->sva02_tdc[4][50][0]-inp_evt->sva02_tdc[4][81][0];
+		 if(inp_evt->sva02_tdc[4][107][0]>100) out_evt->F1FIBER_Y_POS[61] = inp_evt->sva02_tdc[4][50][0]-inp_evt->sva02_tdc[4][107][0];
+		 if(inp_evt->sva02_tdc[4][117][0]>100) out_evt->F1FIBER_Y_POS[62] = inp_evt->sva02_tdc[4][50][0]-inp_evt->sva02_tdc[4][117][0];
+		 if(inp_evt->sva02_tdc[4][97][0]>100) out_evt->F1FIBER_Y_POS[63]  = inp_evt->sva02_tdc[4][50][0]-inp_evt->sva02_tdc[4][97][0];
+		 if(inp_evt->sva02_tdc[4][83][0]>100) out_evt->F1FIBER_Y_POS[64]  = inp_evt->sva02_tdc[4][50][0]-inp_evt->sva02_tdc[4][83][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][12][0]>100){	//MA2 17
+	
+		 if(inp_evt->sva02_tdc[4][108][0]>100) out_evt->F1FIBER_Y_POS[65] = inp_evt->sva02_tdc[4][12][0]-inp_evt->sva02_tdc[4][108][0];
+	         if(inp_evt->sva02_tdc[4][118][0]>100) out_evt->F1FIBER_Y_POS[66] = inp_evt->sva02_tdc[4][12][0]-inp_evt->sva02_tdc[4][118][0];
+		 if(inp_evt->sva02_tdc[4][98][0]>100) out_evt->F1FIBER_Y_POS[67]  = inp_evt->sva02_tdc[4][12][0]-inp_evt->sva02_tdc[4][98][0];
+		 if(inp_evt->sva02_tdc[4][85][0]>100) out_evt->F1FIBER_Y_POS[68]  = inp_evt->sva02_tdc[4][12][0]-inp_evt->sva02_tdc[4][85][0];
+		 //if(inp_evt->sva02_tdc[4][][0]>100) out_evt->F1FIBER_Y_POS[69]  = inp_evt->sva02_tdc[4][12][0]-inp_evt->sva02_tdc[4][][0];
+		 if(inp_evt->sva02_tdc[4][64][0]>100) out_evt->F1FIBER_Y_POS[70]  = inp_evt->sva02_tdc[4][12][0]-inp_evt->sva02_tdc[4][64][0];
+		 if(inp_evt->sva02_tdc[4][99][0]>100) out_evt->F1FIBER_Y_POS[71]  = inp_evt->sva02_tdc[4][12][0]-inp_evt->sva02_tdc[4][99][0];
+		 if(inp_evt->sva02_tdc[4][87][0]>100) out_evt->F1FIBER_Y_POS[72]  = inp_evt->sva02_tdc[4][12][0]-inp_evt->sva02_tdc[4][87][0];
+	
+	}
+	
+	
+	
+	if(inp_evt->sva02_tdc[4][23][0]>100){	//MA2 19
+	
+		if(inp_evt->sva02_tdc[4][108][0]>100) out_evt->F1FIBER_Y_POS[73] = inp_evt->sva02_tdc[4][23][0]-inp_evt->sva02_tdc[4][108][0];
+	       if(inp_evt->sva02_tdc[4][118][0]>100) out_evt->F1FIBER_Y_POS[74]	 = inp_evt->sva02_tdc[4][23][0]-inp_evt->sva02_tdc[4][118][0];
+		 if(inp_evt->sva02_tdc[4][98][0]>100) out_evt->F1FIBER_Y_POS[75] = inp_evt->sva02_tdc[4][23][0]-inp_evt->sva02_tdc[4][98][0];
+		 if(inp_evt->sva02_tdc[4][85][0]>100) out_evt->F1FIBER_Y_POS[76] = inp_evt->sva02_tdc[4][23][0]-inp_evt->sva02_tdc[4][85][0];
+		// if(inp_evt->sva02_tdc[4][][0]>100) out_evt->F1FIBER_Y_POS[77] = inp_evt->sva02_tdc[4][23][0]-inp_evt->sva02_tdc[4][][0];
+		 if(inp_evt->sva02_tdc[4][64][0]>100) out_evt->F1FIBER_Y_POS[78] = inp_evt->sva02_tdc[4][23][0]-inp_evt->sva02_tdc[4][64][0];
+		 if(inp_evt->sva02_tdc[4][99][0]>100) out_evt->F1FIBER_Y_POS[79] = inp_evt->sva02_tdc[4][23][0]-inp_evt->sva02_tdc[4][99][0];
+		if(inp_evt->sva02_tdc[4][87][0]>100) out_evt->F1FIBER_Y_POS[80]	 = inp_evt->sva02_tdc[4][23][0]-inp_evt->sva02_tdc[4][87][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][34][0]>100){	//MA2 21
+	
+		 if(inp_evt->sva02_tdc[4][108][0]>100) out_evt->F1FIBER_Y_POS[81] = inp_evt->sva02_tdc[4][34][0]-inp_evt->sva02_tdc[4][108][0];
+	         if(inp_evt->sva02_tdc[4][118][0]>100) out_evt->F1FIBER_Y_POS[82] = inp_evt->sva02_tdc[4][34][0]-inp_evt->sva02_tdc[4][118][0];
+		 if(inp_evt->sva02_tdc[4][98][0]>100) out_evt->F1FIBER_Y_POS[83]  = inp_evt->sva02_tdc[4][34][0]-inp_evt->sva02_tdc[4][98][0];
+		 if(inp_evt->sva02_tdc[4][85][0]>100) out_evt->F1FIBER_Y_POS[84]  = inp_evt->sva02_tdc[4][34][0]-inp_evt->sva02_tdc[4][85][0];
+		 //if(inp_evt->sva02_tdc[4][][0]>100) out_evt->F1FIBER_Y_POS[85]  = inp_evt->sva02_tdc[4][34][0]-inp_evt->sva02_tdc[4][][0];
+		 if(inp_evt->sva02_tdc[4][64][0]>100) out_evt->F1FIBER_Y_POS[86]  = inp_evt->sva02_tdc[4][34][0]-inp_evt->sva02_tdc[4][64][0];
+		 if(inp_evt->sva02_tdc[4][99][0]>100) out_evt->F1FIBER_Y_POS[87]  = inp_evt->sva02_tdc[4][34][0]-inp_evt->sva02_tdc[4][99][0];
+		 if(inp_evt->sva02_tdc[4][87][0]>100) out_evt->F1FIBER_Y_POS[88]  = inp_evt->sva02_tdc[4][34][0]-inp_evt->sva02_tdc[4][87][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][52][0]>100){	//MA2 23
+	
+		 if(inp_evt->sva02_tdc[4][108][0]>100) out_evt->F1FIBER_Y_POS[89] = inp_evt->sva02_tdc[4][52][0]-inp_evt->sva02_tdc[4][108][0];
+	         if(inp_evt->sva02_tdc[4][118][0]>100) out_evt->F1FIBER_Y_POS[90] = inp_evt->sva02_tdc[4][52][0]-inp_evt->sva02_tdc[4][118][0];
+		 if(inp_evt->sva02_tdc[4][98][0]>100) out_evt->F1FIBER_Y_POS[91]  = inp_evt->sva02_tdc[4][52][0]-inp_evt->sva02_tdc[4][98][0];
+		 if(inp_evt->sva02_tdc[4][85][0]>100) out_evt->F1FIBER_Y_POS[92]  = inp_evt->sva02_tdc[4][52][0]-inp_evt->sva02_tdc[4][85][0];
+		 //if(inp_evt->sva02_tdc[4][][0]>100) out_evt->F1FIBER_Y_POS[93]  = inp_evt->sva02_tdc[4][52][0]-inp_evt->sva02_tdc[4][][0];
+		 if(inp_evt->sva02_tdc[4][64][0]>100) out_evt->F1FIBER_Y_POS[94]  = inp_evt->sva02_tdc[4][52][0]-inp_evt->sva02_tdc[4][64][0];
+		 if(inp_evt->sva02_tdc[4][99][0]>100) out_evt->F1FIBER_Y_POS[95]  = inp_evt->sva02_tdc[4][52][0]-inp_evt->sva02_tdc[4][99][0];
+		 if(inp_evt->sva02_tdc[4][87][0]>100) out_evt->F1FIBER_Y_POS[96]  = inp_evt->sva02_tdc[4][52][0]-inp_evt->sva02_tdc[4][87][0];
+	
+	}
+	
+	
+		
+	if(inp_evt->sva02_tdc[4][13][0]>100){	//MA2 25
+	
+		if(inp_evt->sva02_tdc[4][108][0]>100) out_evt->F1FIBER_Y_POS[97]  = inp_evt->sva02_tdc[4][13][0]-inp_evt->sva02_tdc[4][108][0];
+	        if(inp_evt->sva02_tdc[4][118][0]>100) out_evt->F1FIBER_Y_POS[98]  = inp_evt->sva02_tdc[4][13][0]-inp_evt->sva02_tdc[4][118][0];
+		 if(inp_evt->sva02_tdc[4][98][0]>100) out_evt->F1FIBER_Y_POS[99]  = inp_evt->sva02_tdc[4][13][0]-inp_evt->sva02_tdc[4][98][0];
+		 if(inp_evt->sva02_tdc[4][85][0]>100) out_evt->F1FIBER_Y_POS[100] = inp_evt->sva02_tdc[4][13][0]-inp_evt->sva02_tdc[4][85][0];
+		// if(inp_evt->sva02_tdc[4][][0]>100) out_evt->F1FIBER_Y_POS[101] = inp_evt->sva02_tdc[4][13][0]-inp_evt->sva02_tdc[4][][0];
+		 if(inp_evt->sva02_tdc[4][64][0]>100) out_evt->F1FIBER_Y_POS[102] = inp_evt->sva02_tdc[4][13][0]-inp_evt->sva02_tdc[4][64][0];
+		 if(inp_evt->sva02_tdc[4][99][0]>100) out_evt->F1FIBER_Y_POS[103] = inp_evt->sva02_tdc[4][13][0]-inp_evt->sva02_tdc[4][99][0];
+		if(inp_evt->sva02_tdc[4][87][0]>100) out_evt->F1FIBER_Y_POS[104]  = inp_evt->sva02_tdc[4][13][0]-inp_evt->sva02_tdc[4][87][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][0][0]>100){	//MA2 27
+	
+		if(inp_evt->sva02_tdc[4][108][0]>100) out_evt->F1FIBER_Y_POS[105] = inp_evt->sva02_tdc[4][0][0]-inp_evt->sva02_tdc[4][108][0];
+	        if(inp_evt->sva02_tdc[4][118][0]>100) out_evt->F1FIBER_Y_POS[106] = inp_evt->sva02_tdc[4][0][0]-inp_evt->sva02_tdc[4][118][0];
+		 if(inp_evt->sva02_tdc[4][98][0]>100) out_evt->F1FIBER_Y_POS[107] = inp_evt->sva02_tdc[4][0][0]-inp_evt->sva02_tdc[4][98][0];
+		 if(inp_evt->sva02_tdc[4][85][0]>100) out_evt->F1FIBER_Y_POS[108] = inp_evt->sva02_tdc[4][0][0]-inp_evt->sva02_tdc[4][85][0];
+		 //if(inp_evt->sva02_tdc[4][][0]>100) out_evt->F1FIBER_Y_POS[109] = inp_evt->sva02_tdc[4][32][0]-inp_evt->sva02_tdc[4][][0];
+		 if(inp_evt->sva02_tdc[4][64][0]>100) out_evt->F1FIBER_Y_POS[110] = inp_evt->sva02_tdc[4][0][0]-inp_evt->sva02_tdc[4][64][0];
+		 if(inp_evt->sva02_tdc[4][99][0]>100) out_evt->F1FIBER_Y_POS[111] = inp_evt->sva02_tdc[4][0][0]-inp_evt->sva02_tdc[4][99][0];
+		if(inp_evt->sva02_tdc[4][87][0]>100) out_evt->F1FIBER_Y_POS[112]  = inp_evt->sva02_tdc[4][0][0]-inp_evt->sva02_tdc[4][87][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][35][0]>100){	//MA2 29
+	
+		 if(inp_evt->sva02_tdc[4][108][0]>100) out_evt->F1FIBER_Y_POS[113] = inp_evt->sva02_tdc[4][35][0]-inp_evt->sva02_tdc[4][108][0];
+	         if(inp_evt->sva02_tdc[4][118][0]>100) out_evt->F1FIBER_Y_POS[114] = inp_evt->sva02_tdc[4][35][0]-inp_evt->sva02_tdc[4][118][0];
+		 if(inp_evt->sva02_tdc[4][98][0]>100) out_evt->F1FIBER_Y_POS[115]  = inp_evt->sva02_tdc[4][35][0]-inp_evt->sva02_tdc[4][98][0];
+		 if(inp_evt->sva02_tdc[4][85][0]>100) out_evt->F1FIBER_Y_POS[116]  = inp_evt->sva02_tdc[4][35][0]-inp_evt->sva02_tdc[4][85][0];
+		 //if(inp_evt->sva02_tdc[4][][0]>100) out_evt->F1FIBER_Y_POS[117]  = inp_evt->sva02_tdc[4][35][0]-inp_evt->sva02_tdc[4][][0];
+		 if(inp_evt->sva02_tdc[4][64][0]>100) out_evt->F1FIBER_Y_POS[118]  = inp_evt->sva02_tdc[4][35][0]-inp_evt->sva02_tdc[4][64][0];
+		 if(inp_evt->sva02_tdc[4][99][0]>100) out_evt->F1FIBER_Y_POS[119]  = inp_evt->sva02_tdc[4][35][0]-inp_evt->sva02_tdc[4][99][0];
+		 if(inp_evt->sva02_tdc[4][87][0]>100) out_evt->F1FIBER_Y_POS[120]  = inp_evt->sva02_tdc[4][35][0]-inp_evt->sva02_tdc[4][87][0];
+	
+	}
+	
+	if(inp_evt->sva02_tdc[4][54][0]>100){	//MA2 31
+	
+		if(inp_evt->sva02_tdc[4][108][0]>100) out_evt->F1FIBER_Y_POS[121] = inp_evt->sva02_tdc[4][54][0]-inp_evt->sva02_tdc[4][108][0];
+	        if(inp_evt->sva02_tdc[4][118][0]>100) out_evt->F1FIBER_Y_POS[122] = inp_evt->sva02_tdc[4][54][0]-inp_evt->sva02_tdc[4][118][0];
+		 if(inp_evt->sva02_tdc[4][98][0]>100) out_evt->F1FIBER_Y_POS[123] = inp_evt->sva02_tdc[4][54][0]-inp_evt->sva02_tdc[4][98][0];
+		 if(inp_evt->sva02_tdc[4][85][0]>100) out_evt->F1FIBER_Y_POS[124] = inp_evt->sva02_tdc[4][54][0]-inp_evt->sva02_tdc[4][85][0];
+		 //if(inp_evt->sva02_tdc[4][][0]>100) out_evt->F1FIBER_Y_POS[125] = inp_evt->sva02_tdc[4][54][0]-inp_evt->sva02_tdc[4][][0];
+		 if(inp_evt->sva02_tdc[4][64][0]>100) out_evt->F1FIBER_Y_POS[126] = inp_evt->sva02_tdc[4][54][0]-inp_evt->sva02_tdc[4][64][0];
+		 if(inp_evt->sva02_tdc[4][99][0]>100) out_evt->F1FIBER_Y_POS[127] = inp_evt->sva02_tdc[4][54][0]-inp_evt->sva02_tdc[4][99][0];
+		if(inp_evt->sva02_tdc[4][87][0]>100) out_evt->F1FIBER_Y_POS[128]  = inp_evt->sva02_tdc[4][54][0]-inp_evt->sva02_tdc[4][87][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][14][0]>100){	//MA2 33
+	
+		if(inp_evt->sva02_tdc[4][109][0]>100) out_evt->F1FIBER_Y_POS[129]  = inp_evt->sva02_tdc[4][14][0]-inp_evt->sva02_tdc[4][109][0];
+	        if(inp_evt->sva02_tdc[4][65][0]>100) out_evt->F1FIBER_Y_POS[130]   = inp_evt->sva02_tdc[4][14][0]-inp_evt->sva02_tdc[4][65][0];
+		 if(inp_evt->sva02_tdc[4][100][0]>100) out_evt->F1FIBER_Y_POS[131] = inp_evt->sva02_tdc[4][14][0]-inp_evt->sva02_tdc[4][100][0];
+		 if(inp_evt->sva02_tdc[4][89][0]>100) out_evt->F1FIBER_Y_POS[132]  = inp_evt->sva02_tdc[4][14][0]-inp_evt->sva02_tdc[4][89][0];
+		 if(inp_evt->sva02_tdc[4][110][0]>100) out_evt->F1FIBER_Y_POS[133] = inp_evt->sva02_tdc[4][14][0]-inp_evt->sva02_tdc[4][110][0];
+		 if(inp_evt->sva02_tdc[4][66][0]>100) out_evt->F1FIBER_Y_POS[134]  = inp_evt->sva02_tdc[4][14][0]-inp_evt->sva02_tdc[4][66][0];
+		 if(inp_evt->sva02_tdc[4][101][0]>100) out_evt->F1FIBER_Y_POS[135] = inp_evt->sva02_tdc[4][14][0]-inp_evt->sva02_tdc[4][101][0];
+		if(inp_evt->sva02_tdc[4][91][0]>100) out_evt->F1FIBER_Y_POS[136]   = inp_evt->sva02_tdc[4][14][0]-inp_evt->sva02_tdc[4][91][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][1][0]>100){	//MA2 35
+	
+		if(inp_evt->sva02_tdc[4][109][0]>100) out_evt->F1FIBER_Y_POS[137]  = inp_evt->sva02_tdc[4][1][0]-inp_evt->sva02_tdc[4][109][0];
+	        if(inp_evt->sva02_tdc[4][65][0]>100) out_evt->F1FIBER_Y_POS[138]   = inp_evt->sva02_tdc[4][1][0]-inp_evt->sva02_tdc[4][65][0];
+		 if(inp_evt->sva02_tdc[4][100][0]>100) out_evt->F1FIBER_Y_POS[139] = inp_evt->sva02_tdc[4][1][0]-inp_evt->sva02_tdc[4][100][0];
+		 if(inp_evt->sva02_tdc[4][89][0]>100) out_evt->F1FIBER_Y_POS[140]  = inp_evt->sva02_tdc[4][1][0]-inp_evt->sva02_tdc[4][89][0];
+		 if(inp_evt->sva02_tdc[4][110][0]>100) out_evt->F1FIBER_Y_POS[141] = inp_evt->sva02_tdc[4][1][0]-inp_evt->sva02_tdc[4][110][0];
+		 if(inp_evt->sva02_tdc[4][66][0]>100) out_evt->F1FIBER_Y_POS[142]  = inp_evt->sva02_tdc[4][1][0]-inp_evt->sva02_tdc[4][66][0];
+		 if(inp_evt->sva02_tdc[4][101][0]>100) out_evt->F1FIBER_Y_POS[143] = inp_evt->sva02_tdc[4][1][0]-inp_evt->sva02_tdc[4][101][0];
+		if(inp_evt->sva02_tdc[4][91][0]>100) out_evt->F1FIBER_Y_POS[144]   = inp_evt->sva02_tdc[4][1][0]-inp_evt->sva02_tdc[4][91][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][36][0]>100){	//MA2 37
+	
+		if(inp_evt->sva02_tdc[4][109][0]>100) out_evt->F1FIBER_Y_POS[145]  = inp_evt->sva02_tdc[4][36][0]-inp_evt->sva02_tdc[4][109][0];
+	        if(inp_evt->sva02_tdc[4][65][0]>100) out_evt->F1FIBER_Y_POS[146]   = inp_evt->sva02_tdc[4][36][0]-inp_evt->sva02_tdc[4][65][0];
+		 if(inp_evt->sva02_tdc[4][100][0]>100) out_evt->F1FIBER_Y_POS[147] = inp_evt->sva02_tdc[4][36][0]-inp_evt->sva02_tdc[4][100][0];
+		 if(inp_evt->sva02_tdc[4][89][0]>100) out_evt->F1FIBER_Y_POS[148]  = inp_evt->sva02_tdc[4][36][0]-inp_evt->sva02_tdc[4][89][0];
+		 if(inp_evt->sva02_tdc[4][110][0]>100) out_evt->F1FIBER_Y_POS[149] = inp_evt->sva02_tdc[4][36][0]-inp_evt->sva02_tdc[4][110][0];
+		 if(inp_evt->sva02_tdc[4][66][0]>100) out_evt->F1FIBER_Y_POS[150]  = inp_evt->sva02_tdc[4][36][0]-inp_evt->sva02_tdc[4][66][0];
+		 if(inp_evt->sva02_tdc[4][101][0]>100) out_evt->F1FIBER_Y_POS[151] = inp_evt->sva02_tdc[4][36][0]-inp_evt->sva02_tdc[4][101][0];
+		if(inp_evt->sva02_tdc[4][91][0]>100) out_evt->F1FIBER_Y_POS[152]   = inp_evt->sva02_tdc[4][36][0]-inp_evt->sva02_tdc[4][91][0];
+	
+	}
+	
+	
+	
+	if(inp_evt->sva02_tdc[4][56][0]>100){	//MA2 39
+	
+		if(inp_evt->sva02_tdc[4][109][0]>100) out_evt->F1FIBER_Y_POS[153]  = inp_evt->sva02_tdc[4][56][0]-inp_evt->sva02_tdc[4][109][0];
+	       if(inp_evt->sva02_tdc[4][65][0]>100) out_evt->F1FIBER_Y_POS[154]	   = inp_evt->sva02_tdc[4][56][0]-inp_evt->sva02_tdc[4][65][0];
+		 if(inp_evt->sva02_tdc[4][100][0]>100) out_evt->F1FIBER_Y_POS[155] = inp_evt->sva02_tdc[4][56][0]-inp_evt->sva02_tdc[4][100][0];
+		 if(inp_evt->sva02_tdc[4][89][0]>100) out_evt->F1FIBER_Y_POS[156]  = inp_evt->sva02_tdc[4][56][0]-inp_evt->sva02_tdc[4][89][0];
+		 if(inp_evt->sva02_tdc[4][110][0]>100) out_evt->F1FIBER_Y_POS[157] = inp_evt->sva02_tdc[4][56][0]-inp_evt->sva02_tdc[4][110][0];
+		 if(inp_evt->sva02_tdc[4][66][0]>100) out_evt->F1FIBER_Y_POS[158]  = inp_evt->sva02_tdc[4][56][0]-inp_evt->sva02_tdc[4][66][0];
+		 if(inp_evt->sva02_tdc[4][101][0]>100) out_evt->F1FIBER_Y_POS[159] = inp_evt->sva02_tdc[4][56][0]-inp_evt->sva02_tdc[4][101][0];
+		if(inp_evt->sva02_tdc[4][91][0]>100) out_evt->F1FIBER_Y_POS[160]   = inp_evt->sva02_tdc[4][56][0]-inp_evt->sva02_tdc[4][91][0];
+	
+	}
+	
+	
+	
+	if(inp_evt->sva02_tdc[4][16][0]>100){	//MA2 41
+	
+		if(inp_evt->sva02_tdc[4][109][0]>100) out_evt->F1FIBER_Y_POS[161]  = inp_evt->sva02_tdc[4][16][0]-inp_evt->sva02_tdc[4][109][0];
+	       if(inp_evt->sva02_tdc[4][65][0]>100) out_evt->F1FIBER_Y_POS[162]	   = inp_evt->sva02_tdc[4][16][0]-inp_evt->sva02_tdc[4][65][0];
+		 if(inp_evt->sva02_tdc[4][100][0]>100) out_evt->F1FIBER_Y_POS[163] = inp_evt->sva02_tdc[4][16][0]-inp_evt->sva02_tdc[4][100][0];
+		 if(inp_evt->sva02_tdc[4][89][0]>100) out_evt->F1FIBER_Y_POS[164]  = inp_evt->sva02_tdc[4][16][0]-inp_evt->sva02_tdc[4][89][0];
+		 if(inp_evt->sva02_tdc[4][110][0]>100) out_evt->F1FIBER_Y_POS[165] = inp_evt->sva02_tdc[4][16][0]-inp_evt->sva02_tdc[4][110][0];
+		 if(inp_evt->sva02_tdc[4][66][0]>100) out_evt->F1FIBER_Y_POS[166]  = inp_evt->sva02_tdc[4][16][0]-inp_evt->sva02_tdc[4][66][0];
+		 if(inp_evt->sva02_tdc[4][101][0]>100) out_evt->F1FIBER_Y_POS[167] = inp_evt->sva02_tdc[4][16][0]-inp_evt->sva02_tdc[4][101][0];
+		if(inp_evt->sva02_tdc[4][91][0]>100) out_evt->F1FIBER_Y_POS[168]   = inp_evt->sva02_tdc[4][16][0]-inp_evt->sva02_tdc[4][91][0];
+	
+	}
+	
+	if(inp_evt->sva02_tdc[4][2][0]>100){	//MA2 43
+	
+		if(inp_evt->sva02_tdc[4][109][0]>100) out_evt->F1FIBER_Y_POS[169]  = inp_evt->sva02_tdc[4][2][0]-inp_evt->sva02_tdc[4][109][0];
+	       if(inp_evt->sva02_tdc[4][65][0]>100) out_evt->F1FIBER_Y_POS[170]	   = inp_evt->sva02_tdc[4][2][0]-inp_evt->sva02_tdc[4][65][0];
+		 if(inp_evt->sva02_tdc[4][100][0]>100) out_evt->F1FIBER_Y_POS[171] = inp_evt->sva02_tdc[4][2][0]-inp_evt->sva02_tdc[4][100][0];
+		 if(inp_evt->sva02_tdc[4][89][0]>100) out_evt->F1FIBER_Y_POS[172]  = inp_evt->sva02_tdc[4][2][0]-inp_evt->sva02_tdc[4][89][0];
+		 if(inp_evt->sva02_tdc[4][110][0]>100) out_evt->F1FIBER_Y_POS[173] = inp_evt->sva02_tdc[4][2][0]-inp_evt->sva02_tdc[4][110][0];
+		 if(inp_evt->sva02_tdc[4][66][0]>100) out_evt->F1FIBER_Y_POS[174]  = inp_evt->sva02_tdc[4][2][0]-inp_evt->sva02_tdc[4][66][0];
+		 if(inp_evt->sva02_tdc[4][101][0]>100) out_evt->F1FIBER_Y_POS[175] = inp_evt->sva02_tdc[4][2][0]-inp_evt->sva02_tdc[4][101][0];
+		if(inp_evt->sva02_tdc[4][91][0]>100) out_evt->F1FIBER_Y_POS[176]   = inp_evt->sva02_tdc[4][2][0]-inp_evt->sva02_tdc[4][91][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][37][0]>100){	//MA2 45
+	
+		if(inp_evt->sva02_tdc[4][109][0]>100) out_evt->F1FIBER_Y_POS[177]  = inp_evt->sva02_tdc[4][37][0]-inp_evt->sva02_tdc[4][109][0];
+	       if(inp_evt->sva02_tdc[4][65][0]>100) out_evt->F1FIBER_Y_POS[178]	   = inp_evt->sva02_tdc[4][37][0]-inp_evt->sva02_tdc[4][65][0];
+		 if(inp_evt->sva02_tdc[4][100][0]>100) out_evt->F1FIBER_Y_POS[179] = inp_evt->sva02_tdc[4][37][0]-inp_evt->sva02_tdc[4][100][0];
+		 if(inp_evt->sva02_tdc[4][89][0]>100) out_evt->F1FIBER_Y_POS[180]  = inp_evt->sva02_tdc[4][37][0]-inp_evt->sva02_tdc[4][89][0];
+		 if(inp_evt->sva02_tdc[4][110][0]>100) out_evt->F1FIBER_Y_POS[181] = inp_evt->sva02_tdc[4][37][0]-inp_evt->sva02_tdc[4][110][0];
+		 if(inp_evt->sva02_tdc[4][66][0]>100) out_evt->F1FIBER_Y_POS[182]  = inp_evt->sva02_tdc[4][37][0]-inp_evt->sva02_tdc[4][66][0];
+		 if(inp_evt->sva02_tdc[4][101][0]>100) out_evt->F1FIBER_Y_POS[183] = inp_evt->sva02_tdc[4][37][0]-inp_evt->sva02_tdc[4][101][0];
+		if(inp_evt->sva02_tdc[4][91][0]>100) out_evt->F1FIBER_Y_POS[184]   = inp_evt->sva02_tdc[4][37][0]-inp_evt->sva02_tdc[4][91][0];
+	
+	}
+	
+	
+	
+	if(inp_evt->sva02_tdc[4][58][0]>100){	//MA2 47
+	
+		if(inp_evt->sva02_tdc[4][109][0]>100) out_evt->F1FIBER_Y_POS[185]  = inp_evt->sva02_tdc[4][58][0]-inp_evt->sva02_tdc[4][109][0];
+	       if(inp_evt->sva02_tdc[4][65][0]>100) out_evt->F1FIBER_Y_POS[186]	   = inp_evt->sva02_tdc[4][58][0]-inp_evt->sva02_tdc[4][65][0];
+		 if(inp_evt->sva02_tdc[4][100][0]>100) out_evt->F1FIBER_Y_POS[187] = inp_evt->sva02_tdc[4][58][0]-inp_evt->sva02_tdc[4][100][0];
+		 if(inp_evt->sva02_tdc[4][89][0]>100) out_evt->F1FIBER_Y_POS[188]  = inp_evt->sva02_tdc[4][58][0]-inp_evt->sva02_tdc[4][89][0];
+		 if(inp_evt->sva02_tdc[4][110][0]>100) out_evt->F1FIBER_Y_POS[189] = inp_evt->sva02_tdc[4][58][0]-inp_evt->sva02_tdc[4][110][0];
+		 if(inp_evt->sva02_tdc[4][66][0]>100) out_evt->F1FIBER_Y_POS[190]  = inp_evt->sva02_tdc[4][58][0]-inp_evt->sva02_tdc[4][66][0];
+		 if(inp_evt->sva02_tdc[4][101][0]>100) out_evt->F1FIBER_Y_POS[191] = inp_evt->sva02_tdc[4][58][0]-inp_evt->sva02_tdc[4][101][0];
+		if(inp_evt->sva02_tdc[4][91][0]>100) out_evt->F1FIBER_Y_POS[192]   = inp_evt->sva02_tdc[4][58][0]-inp_evt->sva02_tdc[4][91][0];
+	
+	}
+	
+	if(inp_evt->sva02_tdc[4][15][0]>100){	//MA2 49
+	
+		 if(inp_evt->sva02_tdc[4][111][0]>100) out_evt->F1FIBER_Y_POS[193] = inp_evt->sva02_tdc[4][15][0]-inp_evt->sva02_tdc[4][111][0];
+	         if(inp_evt->sva02_tdc[4][67][0]>100) out_evt->F1FIBER_Y_POS[194]  = inp_evt->sva02_tdc[4][15][0]-inp_evt->sva02_tdc[4][67][0];
+		 if(inp_evt->sva02_tdc[4][102][0]>100) out_evt->F1FIBER_Y_POS[195] = inp_evt->sva02_tdc[4][15][0]-inp_evt->sva02_tdc[4][102][0];
+		 if(inp_evt->sva02_tdc[4][93][0]>100) out_evt->F1FIBER_Y_POS[196]  = inp_evt->sva02_tdc[4][15][0]-inp_evt->sva02_tdc[4][93][0];
+		 if(inp_evt->sva02_tdc[4][112][0]>100) out_evt->F1FIBER_Y_POS[197] = inp_evt->sva02_tdc[4][15][0]-inp_evt->sva02_tdc[4][112][0];
+		 if(inp_evt->sva02_tdc[4][68][0]>100) out_evt->F1FIBER_Y_POS[198]  = inp_evt->sva02_tdc[4][15][0]-inp_evt->sva02_tdc[4][68][0];
+		 if(inp_evt->sva02_tdc[4][103][0]>100) out_evt->F1FIBER_Y_POS[199] = inp_evt->sva02_tdc[4][15][0]-inp_evt->sva02_tdc[4][103][0];
+		 if(inp_evt->sva02_tdc[4][95][0]>100) out_evt->F1FIBER_Y_POS[200]  = inp_evt->sva02_tdc[4][15][0]-inp_evt->sva02_tdc[4][95][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][3][0]>100){	//MA2 51
+	
+		if(inp_evt->sva02_tdc[4][111][0]>100) out_evt->F1FIBER_Y_POS[201]  = inp_evt->sva02_tdc[4][3][0]-inp_evt->sva02_tdc[4][111][0];
+	       if(inp_evt->sva02_tdc[4][67][0]>100) out_evt->F1FIBER_Y_POS[202]	   = inp_evt->sva02_tdc[4][3][0]-inp_evt->sva02_tdc[4][67][0];
+		 if(inp_evt->sva02_tdc[4][102][0]>100) out_evt->F1FIBER_Y_POS[203] = inp_evt->sva02_tdc[4][3][0]-inp_evt->sva02_tdc[4][102][0];
+		 if(inp_evt->sva02_tdc[4][93][0]>100) out_evt->F1FIBER_Y_POS[204]  = inp_evt->sva02_tdc[4][3][0]-inp_evt->sva02_tdc[4][93][0];
+		 if(inp_evt->sva02_tdc[4][112][0]>100) out_evt->F1FIBER_Y_POS[205] = inp_evt->sva02_tdc[4][3][0]-inp_evt->sva02_tdc[4][112][0];
+		 if(inp_evt->sva02_tdc[4][68][0]>100) out_evt->F1FIBER_Y_POS[206]  = inp_evt->sva02_tdc[4][3][0]-inp_evt->sva02_tdc[4][68][0];
+		 if(inp_evt->sva02_tdc[4][103][0]>100) out_evt->F1FIBER_Y_POS[207] = inp_evt->sva02_tdc[4][3][0]-inp_evt->sva02_tdc[4][103][0];
+		if(inp_evt->sva02_tdc[4][95][0]>100) out_evt->F1FIBER_Y_POS[208]   = inp_evt->sva02_tdc[4][3][0]-inp_evt->sva02_tdc[4][95][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][38][0]>100){	//MA2 53
+	
+		if(inp_evt->sva02_tdc[4][111][0]>100) out_evt->F1FIBER_Y_POS[209]  = inp_evt->sva02_tdc[4][38][0]-inp_evt->sva02_tdc[4][111][0];
+	       if(inp_evt->sva02_tdc[4][67][0]>100) out_evt->F1FIBER_Y_POS[210]	   = inp_evt->sva02_tdc[4][38][0]-inp_evt->sva02_tdc[4][67][0];
+		 if(inp_evt->sva02_tdc[4][102][0]>100) out_evt->F1FIBER_Y_POS[211] = inp_evt->sva02_tdc[4][38][0]-inp_evt->sva02_tdc[4][102][0];
+		 if(inp_evt->sva02_tdc[4][93][0]>100) out_evt->F1FIBER_Y_POS[212]  = inp_evt->sva02_tdc[4][38][0]-inp_evt->sva02_tdc[4][93][0];
+		 if(inp_evt->sva02_tdc[4][112][0]>100) out_evt->F1FIBER_Y_POS[213] = inp_evt->sva02_tdc[4][38][0]-inp_evt->sva02_tdc[4][112][0];
+		 if(inp_evt->sva02_tdc[4][68][0]>100) out_evt->F1FIBER_Y_POS[214]  = inp_evt->sva02_tdc[4][38][0]-inp_evt->sva02_tdc[4][68][0];
+		 if(inp_evt->sva02_tdc[4][103][0]>100) out_evt->F1FIBER_Y_POS[215] = inp_evt->sva02_tdc[4][38][0]-inp_evt->sva02_tdc[4][103][0];
+		if(inp_evt->sva02_tdc[4][95][0]>100) out_evt->F1FIBER_Y_POS[216]   = inp_evt->sva02_tdc[4][38][0]-inp_evt->sva02_tdc[4][95][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][60][0]>100){	//MA2 55
+	
+		if(inp_evt->sva02_tdc[4][111][0]>100) out_evt->F1FIBER_Y_POS[217]  = inp_evt->sva02_tdc[4][60][0]-inp_evt->sva02_tdc[4][111][0];
+	       if(inp_evt->sva02_tdc[4][67][0]>100) out_evt->F1FIBER_Y_POS[218]	   = inp_evt->sva02_tdc[4][60][0]-inp_evt->sva02_tdc[4][67][0];
+		 if(inp_evt->sva02_tdc[4][102][0]>100) out_evt->F1FIBER_Y_POS[219] = inp_evt->sva02_tdc[4][60][0]-inp_evt->sva02_tdc[4][102][0];
+		 if(inp_evt->sva02_tdc[4][93][0]>100) out_evt->F1FIBER_Y_POS[220]  = inp_evt->sva02_tdc[4][60][0]-inp_evt->sva02_tdc[4][93][0];
+		 if(inp_evt->sva02_tdc[4][112][0]>100) out_evt->F1FIBER_Y_POS[221] = inp_evt->sva02_tdc[4][60][0]-inp_evt->sva02_tdc[4][112][0];
+		 if(inp_evt->sva02_tdc[4][68][0]>100) out_evt->F1FIBER_Y_POS[222]  = inp_evt->sva02_tdc[4][60][0]-inp_evt->sva02_tdc[4][68][0];
+		 if(inp_evt->sva02_tdc[4][103][0]>100) out_evt->F1FIBER_Y_POS[223] = inp_evt->sva02_tdc[4][60][0]-inp_evt->sva02_tdc[4][103][0];
+		if(inp_evt->sva02_tdc[4][95][0]>100) out_evt->F1FIBER_Y_POS[224]   = inp_evt->sva02_tdc[4][60][0]-inp_evt->sva02_tdc[4][95][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][17][0]>100){	//MA2 57
+	
+		if(inp_evt->sva02_tdc[4][111][0]>100) out_evt->F1FIBER_Y_POS[225]  = inp_evt->sva02_tdc[4][17][0]-inp_evt->sva02_tdc[4][111][0];
+	       if(inp_evt->sva02_tdc[4][67][0]>100) out_evt->F1FIBER_Y_POS[226]	   = inp_evt->sva02_tdc[4][17][0]-inp_evt->sva02_tdc[4][67][0];
+		 if(inp_evt->sva02_tdc[4][102][0]>100) out_evt->F1FIBER_Y_POS[227] = inp_evt->sva02_tdc[4][17][0]-inp_evt->sva02_tdc[4][102][0];
+		 if(inp_evt->sva02_tdc[4][93][0]>100) out_evt->F1FIBER_Y_POS[228]  = inp_evt->sva02_tdc[4][17][0]-inp_evt->sva02_tdc[4][93][0];
+		 if(inp_evt->sva02_tdc[4][112][0]>100) out_evt->F1FIBER_Y_POS[229] = inp_evt->sva02_tdc[4][17][0]-inp_evt->sva02_tdc[4][112][0];
+		 if(inp_evt->sva02_tdc[4][68][0]>100) out_evt->F1FIBER_Y_POS[230]  = inp_evt->sva02_tdc[4][17][0]-inp_evt->sva02_tdc[4][68][0];
+		 if(inp_evt->sva02_tdc[4][103][0]>100) out_evt->F1FIBER_Y_POS[231] = inp_evt->sva02_tdc[4][17][0]-inp_evt->sva02_tdc[4][103][0];
+		if(inp_evt->sva02_tdc[4][95][0]>100) out_evt->F1FIBER_Y_POS[232]   = inp_evt->sva02_tdc[4][17][0]-inp_evt->sva02_tdc[4][95][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][4][0]>100){	//MA2 59
+	
+		if(inp_evt->sva02_tdc[4][111][0]>100) out_evt->F1FIBER_Y_POS[233]  = inp_evt->sva02_tdc[4][4][0]-inp_evt->sva02_tdc[4][111][0];
+	       if(inp_evt->sva02_tdc[4][67][0]>100) out_evt->F1FIBER_Y_POS[234]	   = inp_evt->sva02_tdc[4][4][0]-inp_evt->sva02_tdc[4][67][0];
+		 if(inp_evt->sva02_tdc[4][102][0]>100) out_evt->F1FIBER_Y_POS[235] = inp_evt->sva02_tdc[4][4][0]-inp_evt->sva02_tdc[4][102][0];
+		 if(inp_evt->sva02_tdc[4][93][0]>100) out_evt->F1FIBER_Y_POS[236]  = inp_evt->sva02_tdc[4][4][0]-inp_evt->sva02_tdc[4][93][0];
+		 if(inp_evt->sva02_tdc[4][112][0]>100) out_evt->F1FIBER_Y_POS[237] = inp_evt->sva02_tdc[4][4][0]-inp_evt->sva02_tdc[4][112][0];
+		 if(inp_evt->sva02_tdc[4][68][0]>100) out_evt->F1FIBER_Y_POS[238]  = inp_evt->sva02_tdc[4][4][0]-inp_evt->sva02_tdc[4][68][0];
+		 if(inp_evt->sva02_tdc[4][103][0]>100) out_evt->F1FIBER_Y_POS[239] = inp_evt->sva02_tdc[4][4][0]-inp_evt->sva02_tdc[4][103][0];
+		if(inp_evt->sva02_tdc[4][95][0]>100) out_evt->F1FIBER_Y_POS[240]   = inp_evt->sva02_tdc[4][4][0]-inp_evt->sva02_tdc[4][95][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][39][0]>100){	//MA2 61
+	
+		if(inp_evt->sva02_tdc[4][111][0]>100) out_evt->F1FIBER_Y_POS[241]  = inp_evt->sva02_tdc[4][39][0]-inp_evt->sva02_tdc[4][111][0];
+	       if(inp_evt->sva02_tdc[4][67][0]>100) out_evt->F1FIBER_Y_POS[242]	   = inp_evt->sva02_tdc[4][39][0]-inp_evt->sva02_tdc[4][67][0];
+		 if(inp_evt->sva02_tdc[4][102][0]>100) out_evt->F1FIBER_Y_POS[243] = inp_evt->sva02_tdc[4][39][0]-inp_evt->sva02_tdc[4][102][0];
+		 if(inp_evt->sva02_tdc[4][93][0]>100) out_evt->F1FIBER_Y_POS[244]  = inp_evt->sva02_tdc[4][39][0]-inp_evt->sva02_tdc[4][93][0];
+		 if(inp_evt->sva02_tdc[4][112][0]>100) out_evt->F1FIBER_Y_POS[245] = inp_evt->sva02_tdc[4][39][0]-inp_evt->sva02_tdc[4][112][0];
+		 if(inp_evt->sva02_tdc[4][68][0]>100) out_evt->F1FIBER_Y_POS[246]  = inp_evt->sva02_tdc[4][39][0]-inp_evt->sva02_tdc[4][68][0];
+		 if(inp_evt->sva02_tdc[4][103][0]>100) out_evt->F1FIBER_Y_POS[247] = inp_evt->sva02_tdc[4][39][0]-inp_evt->sva02_tdc[4][103][0];
+		if(inp_evt->sva02_tdc[4][95][0]>100) out_evt->F1FIBER_Y_POS[248]   = inp_evt->sva02_tdc[4][39][0]-inp_evt->sva02_tdc[4][95][0];
+	
+	}
+	
+	
+	if(inp_evt->sva02_tdc[4][62][0]>100){	//MA2 63
+	
+		if(inp_evt->sva02_tdc[4][111][0]>100) out_evt->F1FIBER_Y_POS[249]  = inp_evt->sva02_tdc[4][62][0]-inp_evt->sva02_tdc[4][111][0];
+	       if(inp_evt->sva02_tdc[4][67][0]>100) out_evt->F1FIBER_Y_POS[250]	   = inp_evt->sva02_tdc[4][62][0]-inp_evt->sva02_tdc[4][67][0];
+		 if(inp_evt->sva02_tdc[4][102][0]>100) out_evt->F1FIBER_Y_POS[251] = inp_evt->sva02_tdc[4][62][0]-inp_evt->sva02_tdc[4][102][0];
+		 if(inp_evt->sva02_tdc[4][93][0]>100) out_evt->F1FIBER_Y_POS[252]  = inp_evt->sva02_tdc[4][62][0]-inp_evt->sva02_tdc[4][93][0];
+		 if(inp_evt->sva02_tdc[4][112][0]>100) out_evt->F1FIBER_Y_POS[253] = inp_evt->sva02_tdc[4][62][0]-inp_evt->sva02_tdc[4][112][0];
+		 if(inp_evt->sva02_tdc[4][68][0]>100) out_evt->F1FIBER_Y_POS[254]  = inp_evt->sva02_tdc[4][62][0]-inp_evt->sva02_tdc[4][68][0];
+		 if(inp_evt->sva02_tdc[4][103][0]>100) out_evt->F1FIBER_Y_POS[255] = inp_evt->sva02_tdc[4][62][0]-inp_evt->sva02_tdc[4][103][0];
+		if(inp_evt->sva02_tdc[4][95][0]>100) out_evt->F1FIBER_Y_POS[256]   = inp_evt->sva02_tdc[4][62][0]-inp_evt->sva02_tdc[4][95][0];
+	
+	}*/
+	
+	
+	
+	//if(inp_evt->sva02_tdc[4][][0]>100){
+	
+		//if(inp_evt->sva02_tdc[4][][0]>100) out_evt->F1FIBER_Y_POS[]  = inp_evt->sva02_tdc[4][][0]-inp_evt->sva02_tdc[4][][0];
+	       //if(inp_evt->sva02_tdc[4][][0]>100) out_evt->F1FIBER_Y_POS[]   = inp_evt->sva02_tdc[4][][0]-inp_evt->sva02_tdc[4][][0];
+		 //if(inp_evt->sva02_tdc[4][][0]>100) out_evt->F1FIBER_Y_POS[] = inp_evt->sva02_tdc[4][][0]-inp_evt->sva02_tdc[4][][0];
+		 //if(inp_evt->sva02_tdc[4][][0]>100) out_evt->F1FIBER_Y_POS[] = inp_evt->sva02_tdc[4][][0]-inp_evt->sva02_tdc[4][][0];
+		 //if(inp_evt->sva02_tdc[4][][0]>100) out_evt->F1FIBER_Y_POS[] = inp_evt->sva02_tdc[4][][0]-inp_evt->sva02_tdc[4][][0];
+		 //if(inp_evt->sva02_tdc[4][][0]>100) out_evt->F1FIBER_Y_POS[] = inp_evt->sva02_tdc[4][][0]-inp_evt->sva02_tdc[4][][0];
+		 //if(inp_evt->sva02_tdc[4][][0]>100) out_evt->F1FIBER_Y_POS[] = inp_evt->sva02_tdc[4][][0]-inp_evt->sva02_tdc[4][][0];
+		///if(inp_evt->sva02_tdc[4][][0]>100) out_evt->F1FIBER_Y_POS[]  = inp_evt->sva02_tdc[4][][0]-inp_evt->sva02_tdc[4][][0];
+	
+	//}
+   
+   
+   
+   // Loop to fill 2D histogram for F1 Fiber position  Yassid 11122013
+   
+   
+   	/* for(int i=0;i<304;i++){
+	 
+	 	F1_fiber_pos_y[i]->Fill(out_evt->F1FIBER_Y_POS[i]);	
+	 	F1_fiber_pos->Fill(i,out_evt->F1FIBER_Y_POS[i]);
+	 
+	 }*/
+   
+   
+   
+
+   /*out_evt-> F2UPPAC_L = inp_evt->vmi01[4][0];
+   out_evt-> F2UPPAC_D	 = inp_evt->vmi01[4][1];
+   out_evt-> F2UPPAC_R	 = inp_evt->vmi01[4][2];
+   out_evt-> F2UPPAC_U	 = inp_evt->vmi01[4][3];
+   out_evt-> F2UPPAC_A	 = inp_evt->vmi01[4][4];
+   out_evt-> F2DPPAC_L	 = inp_evt->vmi01[4][5];
+   out_evt-> F2DPPAC_D	 = inp_evt->vmi01[4][6];
+   out_evt-> F2DPPAC_R	 = inp_evt->vmi01[4][7];
+   out_evt-> F2DPPAC_U	 = inp_evt->vmi01[4][8];
+   out_evt-> F2DPPAC_A	 = inp_evt->vmi01[4][9];*/	// Yassid 28092103 13:51 Old sorting with vmi01 775 TDC
+   
+   // Yassid 280913 New sorting using v1190 for F2 PPACS
+   // Yassid 071013 03:50 am condition to completely remove zeros and single hits not on the main peak
+   
+   /*if(inp_evt->sva01_tdc[10][0][0]>3900 && inp_evt->sva01_tdc[10][0][0]<6300) out_evt-> F2UPPAC_L = inp_evt->sva01_tdc[10][0][0];
+   if(inp_evt->sva01_tdc[10][1][0]>3900 && inp_evt->sva01_tdc[10][1][0]<6300) out_evt-> F2UPPAC_D   = inp_evt->sva01_tdc[10][1][0];
+   if(inp_evt->sva01_tdc[10][2][0]>3900 && inp_evt->sva01_tdc[10][2][0]<6300) out_evt-> F2UPPAC_R   = inp_evt->sva01_tdc[10][2][0];
+   if(inp_evt->sva01_tdc[10][3][0]>3900 && inp_evt->sva01_tdc[10][3][0]<6300) out_evt-> F2UPPAC_U   = inp_evt->sva01_tdc[10][3][0];
+   if(inp_evt->sva01_tdc[10][4][0]>3900 && inp_evt->sva01_tdc[10][4][0]<6300) out_evt-> F2UPPAC_A   = inp_evt->sva01_tdc[10][4][0];
+   if(inp_evt->sva01_tdc[10][5][0]>3900 && inp_evt->sva01_tdc[10][5][0]<6300) out_evt-> F2DPPAC_L   = inp_evt->sva01_tdc[10][5][0];
+   if(inp_evt->sva01_tdc[10][6][0]>3900 && inp_evt->sva01_tdc[10][6][0]<6300) out_evt-> F2DPPAC_D   = inp_evt->sva01_tdc[10][6][0];
+   if(inp_evt->sva01_tdc[10][7][0]>3900 && inp_evt->sva01_tdc[10][7][0]<6300) out_evt-> F2DPPAC_R   = inp_evt->sva01_tdc[10][7][0];
+   if(inp_evt->sva01_tdc[10][8][0]>3900 && inp_evt->sva01_tdc[10][8][0]<6300) out_evt-> F2DPPAC_U   = inp_evt->sva01_tdc[10][8][0];
+   if(inp_evt->sva01_tdc[10][9][0]>3900 && inp_evt->sva01_tdc[10][9][0]<6300) out_evt-> F2DPPAC_A   = inp_evt->sva01_tdc[10][9][0];*/
+   
+   
+   /* out_evt-> F2UPPAC_L = inp_evt->sva01_tdc[10][0][0];
+    out_evt-> F2UPPAC_D = inp_evt->sva01_tdc[10][1][0];
+    out_evt-> F2UPPAC_R = inp_evt->sva01_tdc[10][2][0];
+    out_evt-> F2UPPAC_U = inp_evt->sva01_tdc[10][3][0];
+    out_evt-> F2UPPAC_A = inp_evt->sva01_tdc[10][4][0];
+    out_evt-> F2DPPAC_L = inp_evt->sva01_tdc[10][5][0];
+    out_evt-> F2DPPAC_D = inp_evt->sva01_tdc[10][6][0];
+    out_evt-> F2DPPAC_R = inp_evt->sva01_tdc[10][7][0];
+    out_evt-> F2DPPAC_U = inp_evt->sva01_tdc[10][8][0];
+    out_evt-> F2DPPAC_A = inp_evt->sva01_tdc[10][9][0];
+    out_evt-> F3UPPAC_L = inp_evt->sva01_tdc[10][10][0];
+    out_evt-> F3UPPAC_D = inp_evt->sva01_tdc[10][11][0];
+    out_evt-> F3UPPAC_R = inp_evt->sva01_tdc[10][12][0];
+    out_evt-> F3UPPAC_U = inp_evt->sva01_tdc[10][13][0];
+    out_evt-> F3UPPAC_A = inp_evt->sva01_tdc[10][14][0];*/
+
+    /* F2PPAC Sorting for E407 Yassid 28052014 */
+
+   
+    out_evt-> F2UPPAC_L = inp_evt->v7768_tdc[15][0][0];
+    out_evt-> F2UPPAC_D = inp_evt->v7768_tdc[15][1][0];
+    out_evt-> F2UPPAC_R = inp_evt->v7768_tdc[15][2][0];
+    out_evt-> F2UPPAC_U = inp_evt->v7768_tdc[15][3][0];
+    out_evt-> F2UPPAC_A = inp_evt->v7768_tdc[15][4][0];
+    out_evt-> F2DPPAC_L = inp_evt->v7768_tdc[15][5][0];
+    out_evt-> F2DPPAC_D = inp_evt->v7768_tdc[15][6][0];
+    out_evt-> F2DPPAC_R = inp_evt->v7768_tdc[15][7][0];
+    out_evt-> F2DPPAC_U = inp_evt->v7768_tdc[15][8][0];
+    out_evt-> F2DPPAC_A = inp_evt->v7768_tdc[15][9][0];
+    /*out_evt-> F3UPPAC_L = inp_evt->v7768_tdc[10][10][0];
+    out_evt-> F3UPPAC_D = inp_evt->v7768_tdc[10][11][0];
+    out_evt-> F3UPPAC_R = inp_evt->v7768_tdc[10][12][0];
+    out_evt-> F3UPPAC_U = inp_evt->v7768_tdc[10][13][0];
+    out_evt-> F3UPPAC_A = inp_evt->v7768_tdc[10][14][0];*/
+
+	
+
+	
+
+    /************************* TPC Si Sorting Yassid 06112013   *******************************/
+   
+        /* out_evt->TPC_Silicon_RU  = inp_evt->sva01[6][0];
+         out_evt->TPC_Silicon_RD  = inp_evt->sva01[6][1];
+         out_evt->TPC_Silicon_CRU = inp_evt->sva01[6][2];
+         out_evt->TPC_Silicon_CRD = inp_evt->sva01[6][3];
+         out_evt->TPC_Silicon_LU  = inp_evt->sva01[6][4];
+         out_evt->TPC_Silicon_LD  = inp_evt->sva01[6][5];
+         out_evt->TPC_Silicon_CLU = inp_evt->sva01[6][6];
+         out_evt->TPC_Silicon_CLD = inp_evt->sva01[6][7];
+
+
+	 out_evt->TPCSi[0] = inp_evt->sva01[6][2];
+	 out_evt->TPCSi[1] = inp_evt->sva01[6][3];
+	 out_evt->TPCSi[2] = inp_evt->sva01[6][6];
+	 out_evt->TPCSi[3] = inp_evt->sva01[6][7];*/
+
+	 /********************* TPC CsI Sorting Yassid 07112013 ******************************/
+	 /****** NB: Special sorting for the position of the CsI (refer to logbook or elog) **/
+
+	/* out_evt->TPC_CesiumI_Center[0]	= inp_evt->sva01[6][29];
+         out_evt->TPC_CesiumI_Center[1]	= inp_evt->sva01[6][28];
+         out_evt->TPC_CesiumI_Center[2]	= inp_evt->sva01[6][27];
+         out_evt->TPC_CesiumI_Center[3]	= inp_evt->sva01[6][24];
+         out_evt->TPC_CesiumI_Center[4]	= inp_evt->sva01[6][23];
+         out_evt->TPC_CesiumI_Center[5]	= inp_evt->sva01[6][22];
+
+	 
+	 out_evt->TPC_CesiumI_Center[6]	 = inp_evt->sva01[6][19];
+         out_evt->TPC_CesiumI_Center[7]	 = inp_evt->sva01[6][18];
+         out_evt->TPC_CesiumI_Center[8]	 = inp_evt->sva01[6][14];
+         out_evt->TPC_CesiumI_Center[9]	 = inp_evt->sva01[6][13];
+         out_evt->TPC_CesiumI_Center[10] = inp_evt->sva01[6][9];
+         out_evt->TPC_CesiumI_Center[11] = inp_evt->sva01[6][8];
+
+	 out_evt->TPC_CesiumI_Center[12] = inp_evt->sva01[6][31];
+         out_evt->TPC_CesiumI_Center[13] = inp_evt->sva01[6][30];
+         out_evt->TPC_CesiumI_Center[14] = inp_evt->sva01[6][26];
+         out_evt->TPC_CesiumI_Center[15] = inp_evt->sva01[6][25];
+         out_evt->TPC_CesiumI_Center[16] = inp_evt->sva01[6][21];
+         out_evt->TPC_CesiumI_Center[17] = inp_evt->sva01[6][20];
+
+	 out_evt->TPC_CesiumI_Center[18] = inp_evt->sva01[6][17];
+         out_evt->TPC_CesiumI_Center[19] = inp_evt->sva01[6][16];
+         out_evt->TPC_CesiumI_Center[20] = inp_evt->sva01[6][15];
+         out_evt->TPC_CesiumI_Center[21] = inp_evt->sva01[6][12];
+         out_evt->TPC_CesiumI_Center[22] = inp_evt->sva01[6][11];
+         out_evt->TPC_CesiumI_Center[23] = inp_evt->sva01[6][10];*/
+
+
+  
+   
+  // out_evt->HODO_RF	  = inp_evt->sva01[14][30];
+  // out_evt->HODO_RF_Del = inp_evt->sva01[14][31];
+   
+    out_evt->PPAC_Trg = inp_evt->sva01[16][30];	/****/
+
+    out_evt-> F2_Silicon = inp_evt->vmi01[7][0];	/***/
+   
+   // Yassid 28092013 13:47 F2 Scintillator signals added
+   
+ out_evt-> F2_Scint_Q = inp_evt->sva01[20][13];	/****/
+ out_evt-> F2_Scint_T = inp_evt->sva01[16][31];	/****/
+   
+   
+
+   //out_evt->F2_RF   = inp_evt->vmi01_tdc[5][14][0];  /// Yassid IMPORTANT, see TArtProc.cxx for these channels
+   //out_evt->F2_Tref = inp_evt->vmi01_tdc[5][12][0];
+   
+    
+ out_evt->F2_Tref = inp_evt->sva01_tdc[10][15][0];	//E490
+   
+ F2_PID_Raw_Si->Fill(out_evt->F2_RF - out_evt->F2_Tref,out_evt->F2_Scint_Q);	/****/
+ F2_PID_Raw_Scint->Fill(out_evt->F2_RF - out_evt->F2_Tref,out_evt->F2_Scint_Q);	/******/
+	   // F2_PID_Raw_Scint->Fill(inp_evt->vmi01_tdc[5][14][0] - inp_evt->vmi01_tdc[5][12][0],inp_evt->sva01[20][13] );
+	    
+ F2_RaF->Fill(out_evt->F2_RF - out_evt->F2_Tref);	/*****/
+ F2_Tref_TDC->Fill(out_evt->F2_Tref);	/*****/
+   //cout<<"   i: "<<i<<"  F2_RF  :"<<out_evt->F2_RF<<" F2_Tref  : "<<out_evt->F2_Tref<<endl; 
+   
+   
+  
+   
+            if(out_evt-> F2UPPAC_L>0) F2_u_ppac_l_t->Fill(out_evt-> F2UPPAC_L);
+	    if(out_evt-> F2UPPAC_D>0) F2_u_ppac_d_t->Fill(out_evt-> F2UPPAC_D);
+	    if(out_evt-> F2UPPAC_R>0) F2_u_ppac_r_t->Fill(out_evt-> F2UPPAC_R);
+	    if(out_evt-> F2UPPAC_U>0) F2_u_ppac_u_t->Fill(out_evt-> F2UPPAC_U);
+	    if(out_evt-> F2UPPAC_A>0) F2_u_ppac_a_t->Fill(out_evt-> F2UPPAC_A); 
+
+	    if(out_evt-> F2DPPAC_L>0) F2_d_ppac_l_t->Fill(out_evt-> F2DPPAC_L);
+	    if(out_evt-> F2DPPAC_D>0) F2_d_ppac_d_t->Fill(out_evt-> F2DPPAC_D);
+	    if(out_evt-> F2DPPAC_R>0) F2_d_ppac_r_t->Fill(out_evt-> F2DPPAC_R);
+	    if(out_evt-> F2DPPAC_U>0) F2_d_ppac_u_t->Fill(out_evt-> F2DPPAC_U);
+	    if(out_evt-> F2DPPAC_A>0) F2_d_ppac_a_t->Fill(out_evt-> F2DPPAC_A); 
+
+
+	    if(out_evt-> F2DPPAC_L>0 && out_evt-> F2DPPAC_R>0) F2_d_ppac_pos_X->Fill(out_evt-> F2DPPAC_L - out_evt-> F2DPPAC_R);
+            if(out_evt-> F2UPPAC_L>0 && out_evt-> F2UPPAC_R>0) F2_u_ppac_pos_X->Fill(out_evt-> F2UPPAC_L - out_evt-> F2UPPAC_R);
+
+            if(out_evt-> F2DPPAC_D>0 && out_evt-> F2DPPAC_U>0) F2_d_ppac_pos_Y->Fill(out_evt-> F2DPPAC_D - out_evt-> F2DPPAC_U);
+            if(out_evt-> F2UPPAC_D>0 && out_evt-> F2UPPAC_U>0) F2_u_ppac_pos_Y->Fill(out_evt-> F2UPPAC_D - out_evt-> F2UPPAC_U);
+	    
+	    if(out_evt-> F3UPPAC_L>0 && out_evt-> F3UPPAC_R>0) F3_u_ppac_pos_X->Fill(out_evt-> F3UPPAC_L - out_evt-> F3UPPAC_R);
+	    if(out_evt-> F3UPPAC_D>0 && out_evt-> F3UPPAC_U>0) F3_u_ppac_pos_Y->Fill(out_evt-> F3UPPAC_D - out_evt-> F3UPPAC_U);  
+
+
+	    // Yassid 10092013 Fast check of overflow values
+
+	    if(out_evt->F2UPPAC_L>0 && out_evt->F2UPPAC_R>0 && out_evt-> F2UPPAC_U>0 &&  out_evt-> F2UPPAC_D>0)
+                  F2_u_ppac_pos->Fill(  out_evt-> F2UPPAC_L - out_evt-> F2UPPAC_R ,out_evt-> F2UPPAC_D - out_evt-> F2UPPAC_U      );
+           
+           if(out_evt->F2DPPAC_L>0 && out_evt->F2DPPAC_R>0 && out_evt-> F2DPPAC_U>0 &&  out_evt-> F2DPPAC_D>0)
+             F2_d_ppac_pos->Fill(  out_evt-> F2DPPAC_L - out_evt-> F2DPPAC_R ,out_evt-> F2DPPAC_D - out_evt-> F2DPPAC_U      );
+	     
+	    if(out_evt->F3UPPAC_L>0 && out_evt->F3UPPAC_R>0 && out_evt-> F3UPPAC_U>0 &&  out_evt-> F3UPPAC_D>0) 
+	      F3_u_ppac_pos->Fill(  out_evt-> F3UPPAC_L - out_evt-> F3UPPAC_R ,out_evt-> F3UPPAC_D - out_evt-> F3UPPAC_U      );
+	     
+
+	    F2_Sil->Fill(out_evt-> F2_Silicon);
+	    
+	    F2_Sci_q->Fill(out_evt->F2_Scint_Q);
+	    F2_Sci_t->Fill(out_evt->F2_Scint_T);
+	    
+	   
+	    
+	   // HODO_RaF->Fill(out_evt->HODO_RF);
+	   // HODO_RaF_Del->Fill(out_evt->HODO_RF_Del);
+	    
+	    F2_PPACT_Trigger->Fill(out_evt->PPAC_Trg);
+
+
+
+
+	    // Yassid 06112013 17:58 TPCSi histograms E419  NB: We have to do it one by one until we fill each ntuple in an array
+
+
+	    TPC_Si_Right[0]->Fill(out_evt->TPC_Silicon_RU);
+	    TPC_Si_Right[1]->Fill(out_evt->TPC_Silicon_RD);
+	    TPC_Si_Center[0]->Fill(out_evt->TPC_Silicon_CRU);
+	    TPC_Si_Center[1]->Fill(out_evt->TPC_Silicon_CRD);
+	    TPC_Si_Left[0]->Fill(out_evt->TPC_Silicon_LU);
+	    TPC_Si_Left[1]->Fill(out_evt->TPC_Silicon_LD);
+	    TPC_Si_Center[2]->Fill(out_evt->TPC_Silicon_CLU);
+	    TPC_Si_Center[3]->Fill(out_evt->TPC_Silicon_CLD); 
+
+
+	    for(int i=0;i<4;i++){
+	      for(int j=0;j<6;j++){
+		TPC_CsI_Center[i][j]->Fill(out_evt->TPC_CesiumI_Center[j+(i*6)]);
+	      }
+	    }
+
+
+
+
+
+
+	    // Yassid 29082013 Sorting for Hodoscope
+
+ /* for(int i=0;i<13;i++) {
+
+
+
+    out_evt-> HODO_dE_UT[i] = inp_evt-> sva01[16][i];
+    Hodo_DE_u_t[i]->Fill(inp_evt-> sva01[16][i]);
+    out_evt-> HODO_dE_DT[i] = inp_evt-> sva01[16][i+16];
+    Hodo_DE_d_t[i]->Fill(inp_evt-> sva01[16][i+16]);
+
+
+    out_evt-> HODO_dE_UQ[i] = inp_evt-> sva01[20][i];
+    Hodo_DE_u_q[i]->Fill(inp_evt-> sva01[20][i]);
+    out_evt-> HODO_dE_DQ[i] = inp_evt-> sva01[20][i+16];
+    Hodo_DE_d_q[i]->Fill(inp_evt-> sva01[20][i+16]);
+
+ 
+    out_evt-> HODO_E2_LT[i] = inp_evt-> sva01[14][i];
+    Hodo_ETWO_l_t[i]->Fill(inp_evt-> sva01[14][i]);
+    out_evt-> HODO_E2_RT[i] = inp_evt-> sva01[14][i+16];
+    Hodo_ETWO_r_t[i]->Fill(inp_evt-> sva01[14][i+16]);
+
+    out_evt-> HODO_E2_LQ[i] = inp_evt-> sva01[18][i];
+    Hodo_ETWO_l_q[i]->Fill(inp_evt-> sva01[18][i]);
+    out_evt-> HODO_E2_RQ[i] = inp_evt-> sva01[18][i+16];
+    Hodo_ETWO_r_q[i]->Fill(inp_evt-> sva01[18][i+16]);
+    
+    
+   
+    
+    
+    
+
+    // Yassid 06092013 We add Position and Energy for quick test, that should be implemented in the next step Cal/Anl TODO
+    
+      Hodo_DE_pos[i]->Fill(inp_evt-> sva01[16][i]  -   inp_evt->sva01[16][i+16]   );
+      Hodo_ETWO_pos[i]->Fill(inp_evt-> sva01[14][i]  - inp_evt-> sva01[14][i+16]    );
+
+      Hodo_DE_E[i]->Fill(sqrt (inp_evt-> sva01[20][i]*inp_evt-> sva01[20][i+16])  );
+      Hodo_ETWO_E[i]->Fill(sqrt (inp_evt-> sva01[18][i]*inp_evt-> sva01[18][i+16])  );  
+   
+ } */
+ 
+ 
+ 	// Filling multiplicity
+	//HODO_dE_Mult->Fill(out_evt->HODO_dE_Hit++);
+ 	//HODO_E2_Mult->Fill(out_evt->HODO_E2_Hit++);
+ 
+
+   /*  for(int i=0;i<16;i++) {
+
+    out_evt-> HODO_E1_LT[i] = inp_evt-> sva01[15][i];
+    Hodo_EONE_l_t[i]->Fill(inp_evt-> sva01[15][i]);
+    out_evt-> HODO_E1_RT[i] = inp_evt-> sva01[15][i+16];
+    Hodo_EONE_r_t[i]->Fill(inp_evt-> sva01[15][i+16]);
+
+    out_evt-> HODO_E1_LQ[i] = inp_evt-> sva01[19][i];
+    Hodo_EONE_l_q[i]->Fill(inp_evt-> sva01[19][i]);
+    out_evt-> HODO_E1_RQ[i] = inp_evt-> sva01[19][i+16];
+    Hodo_EONE_r_q[i]->Fill(inp_evt-> sva01[19][i+16]);
+
+    Hodo_EONE_pos[i]->Fill(inp_evt-> sva01[15][i] - inp_evt-> sva01[15][i+16]     );
+    Hodo_EONE_E[i]->Fill(sqrt (inp_evt-> sva01[19][i]*inp_evt-> sva01[19][i+16])  ); 
+    
+    
+
+
+     }*/
+     
+     
+
+
+     // Yassid 18092013 Sorting for Si+CsI array 
+     // Yassid 26092013 New Si+CsI Sorting
+    
+   /*  for(int i=0;i<16;i++) {
+
+      
+
+          out_evt-> DSSD_1_b[31-(2*i)] = inp_evt->vmi01[8][i];
+          DSSD_1_bias[31-(2*i)]->Fill(out_evt-> DSSD_1_b[31-(2*i)] );
+         
+          out_evt-> DSSD_1_g[30-(2*i)] = inp_evt->vmi01[9][i];
+          DSSD_1_ground[30-(2*i)]->Fill(out_evt->DSSD_1_g[30-(2*i)]);
+         
+          out_evt-> DSSD_2_b[31-(2*i)] = inp_evt->vmi01[10][i];
+          DSSD_2_bias[31-(2*i)]->Fill(out_evt->DSSD_2_b[31-(2*i)] );
+
+
+          out_evt-> DSSD_2_g[31-(2*i)] = inp_evt->vmi01[11][i];
+	  DSSD_2_ground[31-(2*i)]->Fill(out_evt->DSSD_2_g[31-(2*i)]);  
+
+          out_evt-> DSSD_3_b[30-(2*i)] = inp_evt->vmi01[12][i];
+          DSSD_3_bias[30-(2*i)]->Fill(out_evt->DSSD_3_b[30-(2*i)]); 
+
+          out_evt-> DSSD_3_g[31-(2*i)] = inp_evt-> vmi01[13][i];
+          DSSD_3_ground[31-(2*i)]->Fill(out_evt-> DSSD_3_g[31-(2*i)]);   
+
+
+          out_evt-> DSSD_4_b[2*i+1]					 = inp_evt-> vmi01[15][i];
+	  DSSD_4_bias[2*i+1]->Fill(out_evt-> DSSD_4_b[2*i+1]);	// 2*i+1 = 2
+
+	  out_evt-> DSSD_4_g[2*i] = inp_evt-> vmi01[16][i];     
+	  DSSD_4_ground[2*i]->Fill(out_evt-> DSSD_4_g[2*i]);	// 
+
+	  
+          out_evt-> DSSD_5_b[2*i+1] = inp_evt-> vmi01[18][i];
+	  DSSD_5_bias[2*i+1]->Fill(out_evt-> DSSD_5_b[2*i+1]);  
+
+          out_evt-> DSSD_5_g[2*i] = inp_evt-> vmi01[17][i];     
+	  DSSD_5_ground[2*i]->Fill(out_evt-> DSSD_5_g[2*i]);
+
+	  out_evt-> DSSD_6_b[31-(2*i)] = inp_evt-> vmi01[14][i];     
+	  DSSD_6_bias[31-(2*i)]->Fill(out_evt-> DSSD_6_b[31-(2*i)]);
+  
+          out_evt-> DSSD_6_b[30-(2*i)] = inp_evt-> vmi01[14][i];     
+	  DSSD_6_bias[30-(2*i)]->Fill( out_evt-> DSSD_6_b[30-(2*i)]);   
+      
+
+
+
+
+	  out_evt-> DSSD_1_b[30-(2*i)] = inp_evt-> vmi01[8][i+16];
+          DSSD_1_bias[30-(2*i)]->Fill(out_evt-> DSSD_1_b[30-(2*i)]);
+         
+	  out_evt-> DSSD_1_g[31-(2*i)] = inp_evt-> vmi01[9][i+16];
+          DSSD_1_ground[31-(2*i)]->Fill(out_evt-> DSSD_1_g[31-(2*i)]);
+         
+          out_evt-> DSSD_2_b[30-(2*i)] = inp_evt-> vmi01[10][i+16];
+          DSSD_2_bias[30-(2*i)]->Fill(out_evt-> DSSD_2_b[30-(2*i)]);
+
+
+          out_evt-> DSSD_2_g[30-(2*i)] = inp_evt-> vmi01[11][i+16];
+	  DSSD_2_ground[30-(2*i)]->Fill(out_evt-> DSSD_2_g[30-(2*i)]);  
+
+          out_evt-> DSSD_3_b[31-(2*i)] = inp_evt-> vmi01[12][i+16];
+          DSSD_3_bias[31-(2*i)]->Fill(out_evt-> DSSD_3_b[31-(2*i)]); 
+
+	  out_evt-> DSSD_3_g[30-(2*i)] = inp_evt-> vmi01[13][i+16];
+          DSSD_3_ground[30-(2*i)]->Fill(out_evt-> DSSD_3_g[30-(2*i)]);   
+
+
+          out_evt-> DSSD_4_b[2*i] = inp_evt-> vmi01[15][i+16];
+	  DSSD_4_bias[2*i]->Fill(out_evt-> DSSD_4_b[2*i]);  
+
+	  out_evt-> DSSD_4_g[2*i+1] = inp_evt-> vmi01[16][i+16];     
+	  DSSD_4_ground[2*i+1]->Fill(out_evt-> DSSD_4_g[2*i+1]); 
+
+	  
+          out_evt-> DSSD_5_b[2*i] = inp_evt-> vmi01[18][i+16];
+	  DSSD_5_bias[2*i]->Fill(out_evt->DSSD_5_b[2*i]);  
+
+	  out_evt-> DSSD_5_g[2*i+1] = inp_evt-> vmi01[17][i+16];     
+	  DSSD_5_ground[2*i+1]->Fill(out_evt->DSSD_5_g[2*i+1]);
+
+	  out_evt-> DSSD_6_g[31-(2*i)] = inp_evt->vmi01[14][i+16];     
+	  DSSD_6_ground[31-(2*i)]->Fill(out_evt->DSSD_6_g[31-(2*i)]);
+  
+	  out_evt-> DSSD_6_g[30-(2*i)] = inp_evt->vmi01[14][i+16];     
+	  DSSD_6_ground[30-(2*i)]->Fill(out_evt->DSSD_6_g[30-(2*i)]);
+
+
+       
+     
+        }*/
+	
+	
+	/*for(int i=0;i<4;i++){
+	
+	out_evt-> CsI_1[i] = inp_evt -> vmi01[19][i];
+	CSI_E_1[i]->Fill(out_evt-> CsI_1[i]);
+	
+	
+	out_evt-> CsI_2[i] = inp_evt -> vmi01[19][i+4];
+	CSI_E_2[i]->Fill(out_evt-> CsI_2[i]);
+	
+	
+	out_evt-> CsI_3[i] = inp_evt -> vmi01[19][i+8];
+	CSI_E_3[i]->Fill(out_evt-> CsI_3[i]);
+	
+	 
+	out_evt-> CsI_4[i] = inp_evt -> vmi01[19][i+12];
+	CSI_E_4[i]->Fill(out_evt-> CsI_4[i]);
+	
+	out_evt-> CsI_5[i] = inp_evt -> vmi01[19][i+16];
+	CSI_E_5[i]->Fill(out_evt-> CsI_5[i]);
+	
+	out_evt-> CsI_6[i] = inp_evt -> vmi01[19][i+24];
+	CSI_E_6[i]->Fill(out_evt-> CsI_6[i]);
+	
+	}*/
+	
+	
+	/*for(int i=0;i<6;i++) {
+	
+	out_evt -> SSD[i] = inp_evt -> vmi01[20][i];
+	SSD_E[i]-> Fill(out_evt -> SSD[i]);
+	
+	
+	}*/
+	
+
+     // out_evt->frData[cnt++] = inp_evt->fiCrate2[ii];
+
+   
+   /*  if(out_evt->frData[ii]) {
+        if(fWinCon && fWinCon->Test(out_evt->frData[ii])) fSum1->Fill(out_evt->frData[ii]);
+        fSum2->Fill(out_evt->frData[ii]);
+        fSum3->Fill(out_evt->frData[ii]);
+	}*/
+
+   // see comments in UnpackProc
+   out_evt->SetValid(isValid);
+   return isValid;
+}
+
+TH1* TArtSortProc::MakeH1I_Hodo(const char*	foldername, 
+                                 int		layer,int position,int var, int index,
+                                 const char* xtitle) {
+   char						layername[100];
+   if(layer==0) sprintf(layername,"DE");	//  layername="DE";
+     else					if(layer==1) sprintf(layername,"EONE");
+    else					if(layer==2) sprintf(layername,"ETWO"); ;
+
+   char positionname[100];
+    if(position==0 )sprintf(positionname,"up"); 
+    else	if(position==1) sprintf(positionname,"down");
+    else	if(position==2) sprintf(positionname,"left"); 
+    else	if(position==3) sprintf(positionname,"right");
+    else	if(position==4) sprintf(positionname,"Position");
+    else	if(position==5) sprintf(positionname,"Energy");   
+ 
+   char varname[100];
+   if(var==0) sprintf(varname,"t"); 
+   else if(var==1)  sprintf(varname,"q"); 		     
+   else if(var==2)  sprintf(varname,"pos");
+   else if(var==3)  sprintf(varname,"E");
+   
+
+    char	fullname[100];
+    char	histoname[100];
+    sprintf(fullname,"%s_%s/%s/%s_%s_%s_%02d",foldername,layername,varname,layername,positionname,varname,index);
+    sprintf(histoname,"%s_%s_%s_%02d",layername,positionname,varname,index);
+ 
+    if( (position==0) | (position==1) | (position==2) | (position==3))  return MakeTH1('I',fullname,histoname, 4096., 1., 4096.);
+    else	if(position==4) return MakeTH1('I',fullname,histoname, 4096., 2000., 2000.);
+    else	if(position==5) return MakeTH1('I',fullname,histoname, 4096., 1., 4096.);
+}
+
+TH1* TArtSortProc::MakeH1I_DSSD(const char*	foldername, 
+				int		position,int layer,int strip,
+                                 const char* xtitle) {
+   char						layername[100];
+   if(layer==1) sprintf(layername,"bias");
+   else						if(layer==2) sprintf(layername,"ground");
+
+   // char positionname[100];
+   
+ 
+   // char varname[100];
+ 
+    
+
+    char	fullname[100];
+    char	histoname[100];
+    sprintf(fullname,"%s_%02d/%02d_%s_%02d",foldername,position,position,layername,strip);
+    sprintf(histoname,"DSSD_%02d_%s_%02d",position,layername,strip);
+ 
+    return MakeTH1('I',fullname,histoname, 4096., 1., 4096.);
+   
+}
+
+
+TH1* TArtSortProc::MakeH1I_CSI(const char*	foldername, 
+				int		csiarray,int csinumber) {
+   
+    char	fullname[100];
+    char	histoname[100];
+    sprintf(fullname,"%s_%02d/%02d_%02d",foldername,csiarray,csiarray,csinumber);
+    sprintf(histoname,"CsI_%02d_%02d",csiarray,csinumber);
+ 
+    return MakeTH1('I',fullname,histoname, 4096., 1., 4096.);
+   
+}
+
+
+TH1* TArtSortProc::MakeH1I_SSD(const char*	foldername, 
+				int ssdnumber) {
+   
+    char	fullname[100];
+    char	histoname[100];
+    sprintf(fullname,"%s_%02d",foldername,ssdnumber);
+    sprintf(histoname,"SSD_%02d",ssdnumber);
+ 
+    return MakeTH1('I',fullname,histoname, 4096., 1., 4096.);
+   
+}
+
+TH1* TArtSortProc::MakeH1I_TPCSi(const char*	foldername, 
+			   int			side,int position){
+   
+    char	fullname[100];
+    char	histoname[100];
+    char	sidename[100];
+    char	positionname[100];
+
+    if(side==0) sprintf(sidename,"Center");
+    else	if(side==1) sprintf(sidename,"Right");
+    else	if(side==2) sprintf(sidename,"Left");
+
+    if(position==0) sprintf(positionname,"Up");
+    else	if(position==1) sprintf(positionname,"Down");
+    else	if(position==2) sprintf(positionname,"Right-Up");
+    else	if(position==3) sprintf(positionname,"Right-Down");
+    else	if(position==4) sprintf(positionname,"Left-Up");
+    else	if(position==5) sprintf(positionname,"Left-Down");
+   
+    
+    
+
+    sprintf(fullname,"%s/TPCSi_%s/TPCSi_%s_%s",foldername,sidename,sidename,positionname);
+    sprintf(histoname,"TPCSi_%s_%s",sidename,positionname);
+ 
+    return MakeTH1('I',fullname,histoname, 4096., 1., 4096.);
+   
+}
+
+TH1* TArtSortProc::MakeH1I_TPCCsI(const char*	foldername, 
+				  int		position,int number,int side){
+   
+    char	fullname[100];
+    char	histoname[100];
+     char	sidename[100];
+    char	positionname[100];
+
+    
+     if(side==0) sprintf(sidename,"Center");
+
+     if(position==0) sprintf(positionname,"Right-Up");
+    else	if(position==1) sprintf(positionname,"Right-Down");
+    else	if(position==2) sprintf(positionname,"Left-Up");
+    else	if(position==3) sprintf(positionname,"Left-Down");
+
+     sprintf(fullname,"%s/TPCCSI_%s/TPCCSI_%s_%02d",foldername,sidename,positionname,number);
+     sprintf(histoname,"TPCCsI_%s_%s_%02d",sidename,positionname,number);
+ 
+ 
+    return MakeTH1('I',fullname,histoname, 4096., 1., 4096.);
+   
+}
+

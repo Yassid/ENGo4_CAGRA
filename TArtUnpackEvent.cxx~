@@ -1,0 +1,51 @@
+// $Id: TArtUnpackEvent.cxx 755 2011-05-20 08:04:11Z linev $
+//-----------------------------------------------------------------------
+//       The GSI Online Offline Object Oriented (Go4) Project
+//         Experiment Data Processing at EE department, GSI
+//-----------------------------------------------------------------------
+// Copyright (C) 2000- GSI Helmholtzzentrum für Schwerionenforschung GmbH
+//                     Planckstr. 1, 64291 Darmstadt, Germany
+// Contact:            http://go4.gsi.de
+//-----------------------------------------------------------------------
+// This software can be used under the license agreements as stated
+// in Go4License.txt file which is part of the distribution.
+//-----------------------------------------------------------------------
+
+#include "TArtUnpackEvent.h"
+
+void TArtUnpackEvent::Clear(Option_t *t)
+{
+
+  for(int i=0;i<21;i++){
+     for(int j=0;j<32;j++){
+      // vmi01[i][j] = 0;        
+      // vmi02[i][j] = 0;  
+     //  sva01[i][j] = 0;
+     //  sva02[i][j] = 0;
+       v7768[i][j] = 0;   
+     } 
+
+
+    /* for(int i=0;i<10;i++){
+       for(int j=0;j<128;j++){
+	  //vmi01_tdc[10][128];
+          sva01_tdc[i][j]=0;
+
+         }
+       }*/
+       
+     for(int i=0;i<20;i++){
+       for(int j=0;j<128;j++){
+       	 for(int k=0;k<10;k++){
+	//  vmi01_tdc[i][j][k]=0;
+	//  sva01_tdc[i][j][k]=0;
+	//  sva02_tdc[i][j][k]=0;
+          v7768_tdc[i][j][k]=0;
+	  }
+         }
+	}  
+	  
+         
+
+   }
+}
